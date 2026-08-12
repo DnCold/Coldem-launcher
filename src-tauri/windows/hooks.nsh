@@ -1,5 +1,8 @@
 !macro NSIS_HOOK_POSTINSTALL
   ; The native SDK is linked by the launcher and must sit beside the executable.
-  CopyFiles /SILENT "$INSTDIR\resources\discord\discord_partner_sdk.dll" "$INSTDIR"
-  CopyFiles /SILENT "$INSTDIR\resources\discord\discord_krisp.dll" "$INSTDIR"
+  ; Tauri installs the mapped resources under $INSTDIR\discord, not resources\discord.
+  ; Use explicit destination filenames so the Windows loader finds the SDK before
+  ; the Rust application code starts.
+  CopyFiles /SILENT "$INSTDIR\discord\discord_partner_sdk.dll" "$INSTDIR\discord_partner_sdk.dll"
+  CopyFiles /SILENT "$INSTDIR\discord\discord_krisp.dll" "$INSTDIR\discord_krisp.dll"
 !macroend
