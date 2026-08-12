@@ -1,6 +1,6 @@
 [package]
 name = "coldem-launcher"
-version = "0.2.9"
+version = "0.2.10"
 description = "A focused desktop launcher for DanCold games"
 authors = ["DanCold"]
 edition = "2021"

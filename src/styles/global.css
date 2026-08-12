@@ -27,9 +27,11 @@
 
 html, body, #root { width: 100%; min-width: 320px; height: 100%; margin: 0; }
 
-body { overflow: hidden; font-size: 15px; }
+body { overflow: hidden; font-size: 15px; -webkit-user-select: none; user-select: none; }
 
 button, input { font: inherit; }
+
+input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
 
 button { color: inherit; }
 
