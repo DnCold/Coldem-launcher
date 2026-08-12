@@ -90,6 +90,11 @@ export function SocialPanel({ social }: SocialPanelProps) {
             </div>
           </div>
 
+          <div className="social-beacon" aria-label={canInvite ? "EOS invite relay active" : "EOS invite relay standing by"}>
+            <span><i /> EOS RELAY</span>
+            <b>{canInvite ? "INVITES LIVE" : "STANDING BY"}</b>
+          </div>
+
           {grouped.length === 0 ? (
             <div className="social-panel__empty"><UsersRound size={20} /> No friends to show yet.</div>
           ) : grouped.map(({ group, friends }) => (

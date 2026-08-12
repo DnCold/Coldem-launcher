@@ -133,6 +133,8 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
   const featuredAction = isFeaturedBusy
     ? featuredOperation.kind === "play" ? "Running" : `${Math.round((featuredOperation.progress ?? 0) * 100)}%`
     : featuredUpdate ? "Update" : featuredCave ? "Play" : "Install";
+  const installedCount = launcher.library?.caves.length ?? 0;
+  const updatesCount = launcher.updates.length;
 
   return (
     <main className="app-shell">
@@ -215,6 +217,13 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
           </div>
         </header>
 
+        <section className="coldem-status-strip" aria-label="Library status">
+          <span><i className="coldem-status-strip__pulse" /> COLD SYSTEM ONLINE</span>
+          <b>{installedCount} INSTALLED</b>
+          <b className={updatesCount > 0 ? "coldem-status-strip__updates" : ""}>{updatesCount > 0 ? `${updatesCount} UPDATE${updatesCount === 1 ? "" : "S"} READY` : "ALL PATCHED"}</b>
+          <em>DNCLD // {filter === "home" ? "HOME BASE" : filter.toUpperCase()}</em>
+        </section>
+
         <div className="content-scroll">
           {launcher.bootstrap && !launcher.bootstrap.catalogRestricted && (
             <section className="catalog-warning" role="status">
@@ -250,6 +259,11 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
                   </button>
                   {featuredCave && <span><Clock3 size={15} /> {formatPlaytime(featuredCave.interaction?.secondsRun ?? featuredCave.stats.secondsRun)}</span>}
                 </div>
+                <div className="featured-hero__intel" aria-label="Featured game details">
+                  <span><i /> {featuredCave ? "IN YOUR LIBRARY" : "FRESH DROP"}</span>
+                  <span>BY DANCOLD</span>
+                  <span>BUILD // {featuredUpdate ? "UPDATE READY" : "CURRENT"}</span>
+                </div>
               </div>
               <div className="featured-hero__doodles" aria-hidden="true">
                 <span>PLAY<br />// COLD</span>
@@ -261,6 +275,7 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
                 <i>×</i><i>×</i><i>×</i>
                 <b>NO SLEEP<br />JUST PLAY</b>
               </div>
+              <div className="featured-hero__serial" aria-hidden="true">DC-{String(featuredRecord.id).slice(-5).padStart(5, "0")}<b>/// COLD ARCHIVE ///</b></div>
               <PetSticker kind="yin" variant={4} className="featured-hero__sticker" decorative />
             </section>
           )}
@@ -310,6 +325,7 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
 
         <section className="downloads-panel">
           <div className="rail-heading"><h2>Downloads</h2>{activeOperations.length > 0 && <span>{activeOperations.length}</span>}</div>
+          <p className="downloads-panel__stamp">PATCH BAY // SIGNED FILES ONLY</p>
           {activeOperations.length === 0 ? (
             <div className="downloads-empty"><Zap size={22} /><strong>All clear</strong><p>No active installs or updates.</p></div>
           ) : activeOperations.map((operation) => {

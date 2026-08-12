@@ -1365,3 +1365,113 @@ h1, h2, h3, p { margin: 0; }
 .library-alert p { color: #e0b59d; }
 .sidebar__footer p { color: #e9e4ef; }
 .downloads-empty p { font-size: 11px; color: #b8bfd1; }
+
+/* Critique pass 1: give the eye one clear route—status, featured action, collection. */
+.topbar { box-shadow: inset 0 -1px rgba(255,255,255,.025), 0 8px 18px rgba(2,4,10,.2); }
+.coldem-status-strip { position: relative; z-index: 5; display: flex; align-items: center; gap: 12px; min-height: 29px; padding: 5px 24px; overflow: hidden; border-bottom: 1px solid rgba(182, 95, 244, .19); background: linear-gradient(90deg, rgba(94, 34, 138, .46), rgba(15, 20, 33, .96) 43%, rgba(67, 82, 24, .17)); color: #d9d6e3; font: 800 9px/1 ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; }
+.coldem-status-strip::after { content: "//////"; margin-left: auto; color: rgba(199,247,93,.7); font-size: 11px; letter-spacing: 3px; transform: rotate(-7deg); }
+.coldem-status-strip span { display: inline-flex; align-items: center; gap: 7px; color: #f0ecf7; }
+.coldem-status-strip b { padding: 3px 6px; border: 1px solid rgba(177, 91, 238, .34); background: rgba(149, 60, 214, .16); color: #d8b4fb; font-size: 8px; }
+.coldem-status-strip .coldem-status-strip__updates { border-color: rgba(199,247,93,.5); background: rgba(199,247,93,.12); color: var(--acid); }
+.coldem-status-strip em { color: rgba(186, 190, 207, .75); font-style: normal; }
+.coldem-status-strip__pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--acid); box-shadow: 0 0 0 3px rgba(199,247,93,.12), 0 0 12px var(--acid); animation: coldem-pulse 2.1s ease-in-out infinite; }
+@keyframes coldem-pulse { 50% { box-shadow: 0 0 0 6px rgba(199,247,93,0), 0 0 15px var(--acid); } }
+.content-scroll { padding-top: 22px; }
+.featured-hero { border-color: rgba(203, 142, 255, .44); }
+.featured-hero__copy > p { color: #d1cedb; text-shadow: 1px 1px 0 rgba(7,8,15,.8); }
+.featured-hero__actions > span { color: #c3bed0; }
+.featured-hero .hero-play-button { position: relative; min-width: 174px; letter-spacing: .04em; }
+.featured-hero .hero-play-button::after { content: "▶"; margin-left: 3px; font-size: 10px; opacity: .7; }
+.section-heading > span { padding: 5px 8px; border: 1px solid rgba(160,83,222,.28); border-radius: 3px 7px 4px 6px; background: rgba(109, 48, 163, .12); color: #d9d1e3; }
+@media (max-width: 800px) { .coldem-status-strip { padding-inline: 14px; gap: 7px; font-size: 8px; } .coldem-status-strip em, .coldem-status-strip::after { display: none; } }
+
+/* Critique pass 2: turn the hero from a pretty banner into a game drop worth entering. */
+.featured-hero { background: #0a0d16; }
+.featured-hero__wash { background: linear-gradient(90deg, rgba(7,8,15,.985) 0%, rgba(12, 10, 23, .88) 42%, rgba(9,10,17,.18) 82%), linear-gradient(0deg, rgba(9,10,16,.72), transparent 54%); }
+.featured-hero__copy { padding-bottom: 25px; }
+.featured-hero__intel { display: flex; flex-wrap: wrap; gap: 6px; max-width: 490px; margin-top: 15px; }
+.featured-hero__intel span { padding: 4px 6px; border-left: 2px solid rgba(199,247,93,.74); background: rgba(8, 11, 19, .65); color: #c8c5d0; font: 800 8px/1.1 ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; backdrop-filter: blur(4px); }
+.featured-hero__intel span:nth-child(2) { border-left-color: var(--violet-hot); }
+.featured-hero__intel span:nth-child(3) { border-left-color: #e0e1e9; }
+.featured-hero__intel i { display: inline-block; width: 5px; height: 5px; margin-right: 4px; border-radius: 50%; background: var(--acid); box-shadow: 0 0 7px var(--acid); vertical-align: 1px; }
+.featured-hero__serial { position: absolute; z-index: 3; right: 21px; bottom: 17px; display: grid; gap: 3px; padding: 5px 7px; border: 1px solid rgba(231,226,238,.28); background: rgba(9,10,17,.62); color: rgba(243,240,247,.82); font: 900 10px/1 ui-monospace, monospace; letter-spacing: .16em; text-shadow: 1px 1px #140d1a; transform: rotate(-2deg); }
+.featured-hero__serial b { color: rgba(199,247,93,.74); font-size: 6px; letter-spacing: .1em; }
+.featured-hero__graffiti { text-shadow: 3px 3px 0 rgba(15, 9, 20, .85), 0 0 18px rgba(176, 89, 247, .32); }
+.featured-hero__sticker { filter: drop-shadow(5px 7px 0 rgba(0,0,0,.5)) drop-shadow(0 0 12px rgba(177,91,238,.18)); }
+@media (max-width: 800px) { .featured-hero__intel span:nth-child(3), .featured-hero__serial { display: none; } }
+
+/* Critique pass 3: make every library card feel like a physical piece from the Coldem archive. */
+.game-card { background: linear-gradient(145deg, rgba(51,30,68,.31), rgba(9,13,23,.96) 52%); }
+.game-card::after { content: "COLD ARCHIVE"; position: absolute; z-index: 6; right: 9px; bottom: 7px; color: rgba(231,223,239,.16); font: 900 6px/1 ui-monospace, monospace; letter-spacing: .13em; pointer-events: none; transform: rotate(-2deg); }
+.game-card__cover { overflow: hidden; }
+.game-card__cover img { transition: transform 280ms ease, filter 280ms ease; }
+.game-card:hover .game-card__cover img { transform: scale(1.045); filter: saturate(1.1) contrast(1.04); }
+.game-card__meta { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; }
+.game-card__archive { display: flex; grid-column: 1 / -1; align-items: center; gap: 7px; margin-top: -2px; color: #a7a1b2; font: 800 8px/1 ui-monospace, monospace; letter-spacing: .08em; }
+.game-card__archive span { padding: 3px 5px; border: 1px dashed rgba(197,185,209,.27); color: #d4cbdc; }
+.game-card__archive i { color: var(--acid); font-size: 7px; font-style: normal; }
+.game-card--update_available .game-card__archive i { color: #efffb6; }
+.game-card__title-row p { color: #bbb6c7; }
+.game-card__genre { border: 1px solid rgba(255,255,255,.18); }
+.game-action { box-shadow: 3px 3px 0 rgba(40,17,58,.68); transition: transform 150ms ease, filter 150ms ease, border-color 150ms ease; }
+.game-action:hover:not(:disabled) { transform: translate(-1px, -1px); filter: brightness(1.12); }
+.game-action:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(40,17,58,.68); }
+.game-card--installed { border-color: rgba(199,247,93,.24); }
+.game-card--installed .game-card__cover::after { display: block; content: ""; position: absolute; z-index: 2; inset: auto 0 0; height: 3px; background: linear-gradient(90deg, var(--acid), transparent 72%); opacity: .88; }
+
+/* Critique pass 4: the right rail should look like live equipment, not a pile of secondary cards. */
+.social-panel { background: linear-gradient(150deg, rgba(88,62,176,.22), transparent 48%), repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 1px, transparent 1px 5px), #101522; }
+.social-panel__heading { padding-bottom: 5px; border-bottom: 1px dashed rgba(143,115,194,.22); }
+.social-session { border-style: solid; box-shadow: inset 3px 0 0 rgba(117,125,161,.35); }
+.social-session--live { box-shadow: inset 3px 0 0 var(--acid), 0 0 16px rgba(199,247,93,.06); }
+.social-beacon { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 7px; padding: 5px 7px; border: 1px dashed rgba(116,126,160,.25); color: #979eb3; font: 800 7px/1 ui-monospace, monospace; letter-spacing: .07em; text-transform: uppercase; }
+.social-beacon span { display: inline-flex; align-items: center; gap: 5px; }
+.social-beacon i { width: 5px; height: 5px; border-radius: 50%; background: #7c8398; }
+.social-beacon b { color: #d1c3e3; font-size: 7px; }
+.social-session--live + .social-beacon { border-color: rgba(199,247,93,.38); color: #d7edac; }
+.social-session--live + .social-beacon i { background: var(--acid); box-shadow: 0 0 8px var(--acid); animation: coldem-pulse 1.8s ease-in-out infinite; }
+.social-session--live + .social-beacon b { color: var(--acid); }
+.profile-card small { font-size: 9px; letter-spacing: .02em; }
+.social-session small { font-size: 9px; letter-spacing: 0; }
+.social-friend { position: relative; }
+.social-friend--playing::before { content: ""; position: absolute; left: -3px; top: 7px; bottom: 7px; width: 2px; background: var(--acid); box-shadow: 0 0 7px rgba(199,247,93,.55); }
+.social-invite { box-shadow: 2px 2px 0 rgba(33,25,66,.65); }
+.social-invite:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 rgba(33,25,66,.65); }
+.downloads-panel { position: relative; background: linear-gradient(155deg, rgba(81,39,125,.18), transparent 47%), #101522; }
+.downloads-panel__stamp { margin: 6px 0 -3px; color: rgba(183,176,198,.62); font: 800 7px/1.25 ui-monospace, monospace; letter-spacing: .09em; text-transform: uppercase; }
+.downloads-empty { position: relative; }
+.downloads-empty::before { content: "✓"; position: absolute; top: 14px; right: 21px; color: rgba(199,247,93,.5); font-size: 19px; transform: rotate(14deg); }
+.download-row { border-left: 3px solid var(--violet-hot); border-radius: 5px 11px 5px 9px; }
+.download-row__body > div { height: 7px; border: 1px solid rgba(174,93,239,.26); border-radius: 2px; }
+.download-row__body > div i { background: repeating-linear-gradient(90deg, var(--violet) 0 14px, #d474ff 14px 23px, var(--acid) 23px 25px); }
+.rail-radio { background: linear-gradient(105deg, rgba(49,118,102,.15), rgba(15,20,32,.96) 58%); }
+.rail-radio > span { animation: radio-flicker 2.9s ease-in-out infinite; }
+@keyframes radio-flicker { 50% { opacity: .45; text-shadow: 0 0 12px var(--violet-hot); } }
+
+/* Critique pass 5: keep the grime intentional—protect legibility, motion comfort, and usable targets. */
+.sidebar__nav button:focus-visible,
+.icon-button:focus-visible,
+.hero-play-button:focus-visible,
+.game-action:focus-visible,
+.social-invite:focus-visible,
+.social-connect > button:focus-visible,
+.library-alert button:focus-visible { outline: 2px solid var(--acid); outline-offset: 3px; }
+.sidebar__nav button:hover:not(:disabled) { border-color: rgba(199,247,93,.38); box-shadow: inset 4px 0 0 rgba(199,247,93,.72); }
+.icon-button { transition: transform 140ms ease, background 140ms ease, color 140ms ease; }
+.icon-button:hover:not(:disabled) { transform: rotate(-4deg) scale(1.05); background: rgba(177,91,238,.14); color: #f5efff; }
+.search-field { min-height: 38px; }
+.search-field input::placeholder { color: #9fa4b7; opacity: 1; }
+.empty-library, .library-loading { color: #d8d3e1; }
+.empty-library p { color: #b9b5c5; line-height: 1.5; }
+.library-alert strong { color: #ffe0c5; }
+.library-alert p { text-overflow: clip; white-space: normal; }
+.pet-sticker { filter: drop-shadow(3px 4px 0 rgba(0,0,0,.42)); }
+.app-shell::after { opacity: .13; }
+.grunge-overlay, .street-fx { mix-blend-mode: normal; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+@media (max-width: 1120px) {
+  .featured-hero__serial { right: 14px; }
+  .game-card__archive { font-size: 7px; }
+}

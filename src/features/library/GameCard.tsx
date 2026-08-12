@@ -116,6 +116,11 @@ export function GameCard({
           {cave && !update && <span className="installed-dot" title="Installed" />}
         </div>
 
+        <div className="game-card__archive" aria-label={`${game.title} archive details`}>
+          <span>#{String(game.id).slice(-4).padStart(4, "0")}</span>
+          <i>{update ? "PATCH" : cave ? "ARCHIVED" : "UNLOCK"}</i>
+        </div>
+
         <button
           type="button"
           className={`game-action game-action--${status}`}
