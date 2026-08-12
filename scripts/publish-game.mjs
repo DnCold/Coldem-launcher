@@ -47,7 +47,7 @@ Optional:
   --dry-run
 
 Example:
-  pnpm game:publish -- --repo DanCold/coldem-delivery --game-id 1 --slug robot-rock --title "Robot Rock" --version 0.1.0 --build "D:\\Builds\\Robot Rock" --executable "Robot Rock.exe" --dry-run
+  pnpm game:publish -- --repo DnCold/Coldem-delivery --game-id 1 --slug robot-rock --title "Robot Rock" --version 0.1.0 --build "D:\\Builds\\Robot Rock" --executable "Robot Rock.exe" --dry-run
 `);
 }
 
@@ -70,13 +70,22 @@ function parseArguments(argv) {
 }
 
 function run(program, args, options = {}) {
-  const result = spawnSync(program, args, {
+  let executable = program;
+  if (process.platform === "win32" && program === "gh") {
+    executable = process.env.GH_PATH || "gh.exe";
+  }
+  const result = spawnSync(executable, args, {
     cwd: projectRoot,
     encoding: "utf8",
     stdio: options.capture ? "pipe" : "inherit",
     windowsHide: true
   });
-  if (result.error) fail(`Could not run ${program}: ${result.error.message}`);
+  if (result.error) {
+    const hint = program === "gh" && process.platform === "win32"
+      ? " Set GH_PATH to the full path of gh.exe if GitHub CLI is not on PATH."
+      : "";
+    fail(`Could not run ${program}: ${result.error.message}.${hint}`);
+  }
   if (result.status !== 0) {
     const detail = options.capture ? `\n${result.stderr || result.stdout}` : "";
     fail(`${program} exited with code ${result.status}.${detail}`);
