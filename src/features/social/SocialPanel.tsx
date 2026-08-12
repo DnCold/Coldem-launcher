@@ -110,7 +110,7 @@ export function SocialPanel({ social }: SocialPanelProps) {
           ))}
 
           <button type="button" className="social-disconnect" onClick={() => void social.disconnect()}>
-            <LogOut size={12} /> Disconnect Discord
+            <LogOut size={12} /> Disconnect &amp; forget Discord
           </button>
         </>
       ) : (
@@ -135,4 +135,3 @@ export function SocialPanel({ social }: SocialPanelProps) {
     </section>
   );
 }
-

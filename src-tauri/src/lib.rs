@@ -2,6 +2,8 @@ mod app_updates;
 mod commands;
 mod delivery;
 #[cfg(target_os = "windows")]
+mod discord_credentials;
+#[cfg(target_os = "windows")]
 mod discord_native;
 mod social;
 
@@ -33,6 +35,9 @@ impl Default for AppState {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let state = AppState::default();
+    #[cfg(target_os = "windows")]
+    let social = state.social.clone();
     let mut builder = tauri::Builder::default();
 
     #[cfg(desktop)]
@@ -49,12 +54,14 @@ pub fn run() {
 
     builder
         .plugin(tauri_plugin_shell::init())
-        .setup(|app| {
+        .setup(move |app| {
             #[cfg(target_os = "windows")]
             ensure_discord_runtime(app.handle())?;
+            #[cfg(target_os = "windows")]
+            let _ = social.restore_saved_session(app.handle());
             Ok(())
         })
-        .manage(AppState::default())
+        .manage(state)
         .invoke_handler(tauri::generate_handler![
             initialize_launcher,
             launcher_update_status,

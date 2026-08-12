@@ -145,7 +145,11 @@ impl SocialService {
     }
 
     #[cfg(target_os = "windows")]
-    fn start_native(self: &Arc<Self>, app: &AppHandle) -> Result<(), String> {
+    fn start_native(
+        self: &Arc<Self>,
+        app: &AppHandle,
+        saved_credentials: Option<crate::discord_credentials::DiscordCredentials>,
+    ) -> Result<(), String> {
         let application_id = option_env!("COLDEM_DISCORD_APPLICATION_ID")
             .and_then(|value| value.parse::<u64>().ok())
             .ok_or_else(|| {
@@ -160,15 +164,27 @@ impl SocialService {
         }
         let weak = Arc::downgrade(self);
         let app = app.clone();
+        let emit_app = app.clone();
         let emit = Arc::new(move || {
             if let Some(service) = weak.upgrade() {
-                service.emit_snapshot(&app);
+                service.emit_snapshot(&emit_app);
             }
+        });
+        let credentials_app = app.clone();
+        let remember_credentials = Arc::new(move |credentials| {
+            let _ = crate::discord_credentials::save(&credentials_app, &credentials);
+        });
+        let clear_app = app.clone();
+        let clear_credentials = Arc::new(move || {
+            let _ = crate::discord_credentials::clear(&clear_app);
         });
         *runtime = Some(crate::discord_native::NativeRuntime::start(
             application_id,
             self.native_snapshot.clone(),
             emit,
+            saved_credentials,
+            remember_credentials,
+            clear_credentials,
         )?);
         Ok(())
     }
@@ -176,6 +192,18 @@ impl SocialService {
     #[cfg(not(target_os = "windows"))]
     fn start_native(self: &Arc<Self>, _app: &AppHandle) -> Result<(), String> {
         Err("Discord Social SDK is currently available only in the Windows build.".into())
+    }
+
+    #[cfg(target_os = "windows")]
+    pub fn restore_saved_session(self: &Arc<Self>, app: &AppHandle) -> Result<(), String> {
+        let Some(credentials) = crate::discord_credentials::load(app)? else {
+            return Ok(());
+        };
+        if let Ok(mut snapshot) = self.native_snapshot.lock() {
+            snapshot.connection = "connecting".into();
+            snapshot.message = Some("Restoring your saved Discord session...".into());
+        }
+        self.start_native(app, Some(credentials))
     }
 
     fn send_native_command(
@@ -323,7 +351,7 @@ pub fn connect_discord(
     if !snapshot.sdk_available {
         return Err("The Discord Social SDK runtime is not bundled with this build.".into());
     }
-    state.social.start_native(&app)?;
+    state.social.start_native(&app, None)?;
     state
         .social
         .send_native_command(crate::discord_native::NativeCommand::Connect)?;
@@ -331,11 +359,16 @@ pub fn connect_discord(
 }
 
 #[tauri::command]
-pub fn disconnect_discord(state: tauri::State<'_, crate::AppState>) -> SocialSnapshot {
+pub fn disconnect_discord(
+    app: AppHandle,
+    state: tauri::State<'_, crate::AppState>,
+) -> Result<SocialSnapshot, String> {
+    #[cfg(target_os = "windows")]
+    crate::discord_credentials::clear(&app)?;
     let _ = state
         .social
         .send_native_command(crate::discord_native::NativeCommand::Disconnect);
-    state.social.snapshot()
+    Ok(state.social.snapshot())
 }
 
 #[tauri::command]

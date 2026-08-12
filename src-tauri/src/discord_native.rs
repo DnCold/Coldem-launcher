@@ -1,4 +1,7 @@
-use crate::social::{NativeSnapshot, SocialFriend, SocialIdentity};
+use crate::{
+    discord_credentials::DiscordCredentials,
+    social::{NativeSnapshot, SocialFriend, SocialIdentity},
+};
 use std::{
     ffi::{c_void, CString},
     sync::{mpsc, Arc, Mutex},
@@ -21,11 +24,24 @@ impl NativeRuntime {
         application_id: u64,
         snapshot: Arc<Mutex<NativeSnapshot>>,
         emit: Arc<dyn Fn() + Send + Sync>,
+        saved_credentials: Option<DiscordCredentials>,
+        remember_credentials: Arc<dyn Fn(DiscordCredentials) + Send + Sync>,
+        clear_credentials: Arc<dyn Fn() + Send + Sync>,
     ) -> Result<Self, String> {
         let (commands, receiver) = mpsc::channel();
         std::thread::Builder::new()
             .name("coldem-discord-social".into())
-            .spawn(move || run(application_id, snapshot, emit, receiver))
+            .spawn(move || {
+                run(
+                    application_id,
+                    snapshot,
+                    emit,
+                    receiver,
+                    saved_credentials,
+                    remember_credentials,
+                    clear_credentials,
+                )
+            })
             .map_err(|error| format!("Could not start Discord Social SDK: {error}"))?;
         Ok(Self { commands })
     }
@@ -43,6 +59,10 @@ struct CallbackState {
     snapshot: Arc<Mutex<NativeSnapshot>>,
     emit: Arc<dyn Fn() + Send + Sync>,
     verifier: Option<DiscordAuthorizationCodeVerifier>,
+    pending_credentials: Option<DiscordCredentials>,
+    restoring_session: bool,
+    remember_credentials: Arc<dyn Fn(DiscordCredentials) + Send + Sync>,
+    clear_credentials: Arc<dyn Fn() + Send + Sync>,
 }
 
 fn run(
@@ -50,6 +70,9 @@ fn run(
     snapshot: Arc<Mutex<NativeSnapshot>>,
     emit: Arc<dyn Fn() + Send + Sync>,
     receiver: mpsc::Receiver<NativeCommand>,
+    saved_credentials: Option<DiscordCredentials>,
+    remember_credentials: Arc<dyn Fn(DiscordCredentials) + Send + Sync>,
+    clear_credentials: Arc<dyn Fn() + Send + Sync>,
 ) {
     let mut client = DiscordClient {
         opaque: std::ptr::null_mut(),
@@ -64,6 +87,10 @@ fn run(
         snapshot,
         emit,
         verifier: None,
+        pending_credentials: None,
+        restoring_session: saved_credentials.is_some(),
+        remember_credentials,
+        clear_credentials,
     });
     let state_ptr = (&mut *state) as *mut CallbackState as *mut c_void;
     unsafe {
@@ -75,6 +102,16 @@ fn run(
             state_ptr,
         );
         Discord_Client_SetUserUpdatedCallback(&mut client, user_updated_callback, None, state_ptr);
+        if let Some(credentials) = saved_credentials {
+            Discord_Client_RefreshToken(
+                &mut client,
+                application_id,
+                sdk_string(credentials.refresh_token.as_bytes()),
+                token_callback,
+                None,
+                state_ptr,
+            );
+        }
     }
 
     let mut last_refresh = Instant::now() - Duration::from_secs(2);
@@ -118,7 +155,7 @@ unsafe fn handle_command(
                 Discord_Client_Connect(client);
                 return;
             }
-            if state.verifier.is_some() {
+            if state.verifier.is_some() || state.restoring_session {
                 return;
             }
             let mut verifier = DiscordAuthorizationCodeVerifier {
@@ -195,22 +232,45 @@ unsafe extern "C" fn authorization_callback(
 unsafe extern "C" fn token_callback(
     result: *mut DiscordClientResult,
     access_token: DiscordString,
-    _refresh_token: DiscordString,
+    refresh_token: DiscordString,
     token_type: i32,
     _expires_in: i32,
     _scopes: DiscordString,
     user_data: *mut c_void,
 ) {
     if result.is_null() || user_data.is_null() || !Discord_ClientResult_Successful(result) {
+        if !user_data.is_null() {
+            let state = &mut *(user_data as *mut CallbackState);
+            if state.restoring_session {
+                (state.clear_credentials)();
+                state.restoring_session = false;
+                if let Ok(mut snapshot) = state.snapshot.lock() {
+                    snapshot.connection = "disconnected".into();
+                    snapshot.current_user = None;
+                    snapshot.message = Some("Your saved Discord session expired. Connect again to restore it.".into());
+                }
+                (state.emit)();
+                return;
+            }
+        }
         set_message(user_data, "Discord token exchange failed.");
         return;
     }
     let state = &mut *(user_data as *mut CallbackState);
-    let token = copy_sdk_string(access_token);
+    let credentials = DiscordCredentials {
+        access_token: copy_sdk_string(access_token),
+        refresh_token: copy_sdk_string(refresh_token),
+        token_type,
+    };
+    if credentials.access_token.is_empty() || credentials.refresh_token.is_empty() {
+        set_message(user_data, "Discord returned an incomplete session.");
+        return;
+    }
+    state.pending_credentials = Some(credentials.clone());
     Discord_Client_UpdateToken(
         &mut *(state.client as *mut DiscordClient),
-        token_type,
-        sdk_string(token.as_bytes()),
+        credentials.token_type,
+        sdk_string(credentials.access_token.as_bytes()),
         update_token_callback,
         None,
         user_data,
@@ -222,10 +282,29 @@ unsafe extern "C" fn update_token_callback(
     user_data: *mut c_void,
 ) {
     if result.is_null() || user_data.is_null() || !Discord_ClientResult_Successful(result) {
+        if !user_data.is_null() {
+            let state = &mut *(user_data as *mut CallbackState);
+            if state.restoring_session {
+                (state.clear_credentials)();
+                state.restoring_session = false;
+                state.pending_credentials = None;
+                if let Ok(mut snapshot) = state.snapshot.lock() {
+                    snapshot.connection = "disconnected".into();
+                    snapshot.current_user = None;
+                    snapshot.message = Some("Your saved Discord session expired. Connect again to restore it.".into());
+                }
+                (state.emit)();
+                return;
+            }
+        }
         set_message(user_data, "Discord token setup failed.");
         return;
     }
     let state = &mut *(user_data as *mut CallbackState);
+    if let Some(credentials) = state.pending_credentials.take() {
+        (state.remember_credentials)(credentials);
+    }
+    state.restoring_session = false;
     if let Some(mut verifier) = state.verifier.take() {
         Discord_AuthorizationCodeVerifier_Drop(&mut verifier);
     }
@@ -520,6 +599,22 @@ extern "C" {
         code: DiscordString,
         verifier: DiscordString,
         redirect_uri: DiscordString,
+        cb: unsafe extern "C" fn(
+            *mut DiscordClientResult,
+            DiscordString,
+            DiscordString,
+            i32,
+            i32,
+            DiscordString,
+            *mut c_void,
+        ),
+        free: Option<unsafe extern "C" fn(*mut c_void)>,
+        user_data: *mut c_void,
+    );
+    fn Discord_Client_RefreshToken(
+        client: *mut DiscordClient,
+        application_id: u64,
+        refresh_token: DiscordString,
         cb: unsafe extern "C" fn(
             *mut DiscordClientResult,
             DiscordString,
