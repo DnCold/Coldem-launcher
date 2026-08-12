@@ -139,15 +139,16 @@ replace both a package and its digest.
 ```powershell
 minisign -G -p "D:\Keys\coldem.pub" -s "D:\Keys\coldem.key"
 pnpm game:publish -- <normal arguments> --minisign-key "D:\Keys\coldem.key"
-
-$env:COLDEM_CATALOG_PUBKEY = (Get-Content -Raw "D:\Keys\coldem.pub")
-$env:COLDEM_GITHUB_REPOSITORY = "DnCold/Coldem-delivery"
-pnpm tauri build
 ```
 
-Back up the private key and never commit or share it. A launcher built with the
-public key refuses unsigned or incorrectly signed catalogs. Development builds
-without it still verify artifact SHA-256 and show a security notice.
+This deployment uses the catalog private key at
+`C:\Users\DanCold\.minisign\coldem-catalog.key`; it stays outside Git and must
+be passed to every production `game:publish` command. Its public verification
+key is compiled into Coldem. Back up the private key and never commit or share
+it: the launcher refuses unsigned or incorrectly signed remote catalogs.
+
+If `minisign` is not available on `PATH`, set `MINISIGN_PATH` or pass
+`--minisign-bin` with its full executable path.
 
 ## Update the launcher itself
 

@@ -44,6 +44,7 @@ Optional:
   --cover-url https://...
   --cover-file D:\\art\\cover.png
   --minisign-key D:\\keys\\coldem.key
+  --minisign-bin D:\\tools\\minisign.exe
   --dry-run
 
 Example:
@@ -275,7 +276,7 @@ releaseAssets.push(manifestPath);
 if (args.minisignKey) {
   const key = resolve(args.minisignKey);
   if (!existsSync(key)) fail(`Minisign private key does not exist: ${key}`);
-  run("minisign", ["-S", "-s", key, "-m", manifestPath]);
+  run(args.minisignBin || process.env.MINISIGN_PATH || "minisign", ["-S", "-s", key, "-m", manifestPath]);
   const signature = `${manifestPath}.minisig`;
   if (!existsSync(signature)) fail("minisign did not generate the manifest signature");
   releaseAssets.push(signature);
