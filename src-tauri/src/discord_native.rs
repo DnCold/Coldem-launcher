@@ -1,4 +1,4 @@
-use crate::social::{NativeSnapshot, SocialFriend};
+use crate::social::{NativeSnapshot, SocialFriend, SocialIdentity};
 use std::{
     ffi::{c_void, CString},
     sync::{mpsc, Arc, Mutex},
@@ -91,6 +91,7 @@ fn run(
             && unsafe { Discord_Client_GetStatus(&mut client) } == DiscordClientStatus::Ready as i32
         {
             unsafe {
+                refresh_current_user(&state);
                 refresh_friends(&state);
             }
             last_refresh = Instant::now();
@@ -251,6 +252,9 @@ unsafe extern "C" fn status_callback(
     };
     if let Ok(mut snapshot) = state.snapshot.lock() {
         snapshot.connection = connection.into();
+        if connection != "connected" {
+            snapshot.current_user = None;
+        }
         snapshot.message = Some(message.into());
     }
     (state.emit)();
@@ -317,6 +321,29 @@ unsafe fn refresh_friends(state: &CallbackState) {
         snapshot.connection = "connected".into();
     }
     (state.emit)();
+}
+
+unsafe fn refresh_current_user(state: &CallbackState) {
+    let mut user = DiscordUserHandle {
+        opaque: std::ptr::null_mut(),
+    };
+    if !Discord_Client_GetCurrentUserV2(&mut *(state.client as *mut DiscordClient), &mut user) {
+        return;
+    }
+
+    let username = user_string(&mut user, Discord_UserHandle_Username);
+    let avatar_url = user_avatar_url(&mut user);
+    let identity = SocialIdentity {
+        id: Discord_UserHandle_Id(&mut user).to_string(),
+        display_name: user_string(&mut user, Discord_UserHandle_DisplayName),
+        username: (!username.is_empty()).then_some(username),
+        avatar_url: (!avatar_url.is_empty()).then_some(avatar_url),
+    };
+    Discord_UserHandle_Drop(&mut user);
+
+    if let Ok(mut snapshot) = state.snapshot.lock() {
+        snapshot.current_user = Some(identity);
+    }
 }
 
 unsafe fn set_message(user_data: *mut c_void, message: &str) {
@@ -442,6 +469,10 @@ extern "C" {
         user_data: *mut c_void,
     );
     fn Discord_Client_GetStatus(client: *mut DiscordClient) -> i32;
+    fn Discord_Client_GetCurrentUserV2(
+        client: *mut DiscordClient,
+        result: *mut DiscordUserHandle,
+    ) -> bool;
     fn Discord_Client_IsAuthenticated(client: *mut DiscordClient) -> bool;
     fn Discord_Client_Connect(client: *mut DiscordClient);
     fn Discord_Client_Disconnect(client: *mut DiscordClient);
@@ -530,6 +561,8 @@ extern "C" {
     fn Discord_RelationshipHandle_Drop(relationship: *mut DiscordRelationshipHandle);
     fn Discord_UserHandle_Drop(user: *mut DiscordUserHandle);
     fn Discord_UserHandle_DisplayName(user: *mut DiscordUserHandle, result: *mut DiscordString);
+    fn Discord_UserHandle_Username(user: *mut DiscordUserHandle, result: *mut DiscordString);
+    fn Discord_UserHandle_Id(user: *mut DiscordUserHandle) -> u64;
     fn Discord_UserHandle_AvatarUrl(
         user: *mut DiscordUserHandle,
         animated: i32,

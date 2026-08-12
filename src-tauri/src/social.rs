@@ -28,6 +28,7 @@ pub struct SocialSnapshot {
     connection: String,
     application_configured: bool,
     sdk_available: bool,
+    current_user: Option<SocialIdentity>,
     friends: Vec<SocialFriend>,
     active_session: Option<SocialSession>,
     message: Option<String>,
@@ -67,9 +68,19 @@ pub(crate) struct SocialFriend {
     pub(crate) avatar_url: Option<String>,
 }
 
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct SocialIdentity {
+    pub(crate) id: String,
+    pub(crate) display_name: String,
+    pub(crate) username: Option<String>,
+    pub(crate) avatar_url: Option<String>,
+}
+
 #[derive(Clone, Default)]
 pub(crate) struct NativeSnapshot {
     pub(crate) connection: String,
+    pub(crate) current_user: Option<SocialIdentity>,
     pub(crate) friends: Vec<SocialFriend>,
     pub(crate) message: Option<String>,
 }
@@ -86,6 +97,7 @@ impl SocialService {
             game_bridges: Mutex::new(HashMap::new()),
             native_snapshot: Arc::new(Mutex::new(NativeSnapshot {
                 connection: "disconnected".into(),
+                current_user: None,
                 friends: Vec::new(),
                 message: Some("Connect Discord to see friends and activity invites.".into()),
             })),
@@ -113,6 +125,7 @@ impl SocialService {
             },
             application_configured,
             sdk_available,
+            current_user: native.current_user,
             friends: native.friends,
             active_session: self
                 .active_session
