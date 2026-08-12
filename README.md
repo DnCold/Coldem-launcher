@@ -52,20 +52,19 @@ does not require redesigning the launcher.
 
 ## Recommended GitHub setup
 
-Create a dedicated **public** repository such as `OWNER/coldem-delivery`. It
-does not need source code; its Releases are the content service. Keep old
+Game delivery is configured to use the dedicated public repository
+`DnCold/Coldem-delivery`. Its Releases are the content service. Keep old
 Releases because new manifests can reference full packages from earlier tags.
 
 Install and authenticate the GitHub CLI on the creator computer:
 
 ```powershell
 gh auth login
-gh repo create OWNER/coldem-delivery --public --add-readme
+gh repo view DnCold/Coldem-delivery
 ```
 
-The initial README gives Releases a default-branch commit to tag. This local
-Coldem folder does not currently have to be a Git repository because the
-publisher always passes `--repo` explicitly.
+The repository README gives Releases a default-branch commit to tag. The game
+publisher always targets the repository passed through `--repo` explicitly.
 
 ## Publish Robot Rock
 
@@ -73,15 +72,15 @@ First validate the build without uploading anything:
 
 ```powershell
 pnpm game:publish -- `
-  --repo OWNER/coldem-delivery `
+  --repo DnCold/Coldem-delivery `
   --game-id 1 `
-  --slug robot-rock `
-  --title "Robot Rock" `
+  --slug robot-rock-reborn `
+  --title "Robot Rock Reborn" `
   --version 0.1.0 `
-  --build "D:\Builds\Robot Rock" `
-  --executable "Robot Rock.exe" `
+  --build "D:\Builds\Robot Rock Reborn" `
+  --executable "RobotRock2026.exe" `
   --summary "Your short description" `
-  --cover-file "D:\Art\robot-rock-cover.png" `
+  --cover-file "D:\Art\robot-rock-reborn-cover.png" `
   --dry-run
 ```
 
@@ -94,7 +93,7 @@ The command also writes and uploads `coldem-manifest.json`. Each artifact URL
 points to an immutable tag, while the launcher reads the moving catalog URL:
 
 ```text
-https://github.com/OWNER/coldem-delivery/releases/latest/download/coldem-manifest.json
+https://github.com/DnCold/Coldem-delivery/releases/latest/download/coldem-manifest.json
 ```
 
 GitHub accepts each `.pwr`, `.pwr.sig`, cover, and manifest as a separate
@@ -102,12 +101,20 @@ asset. The publisher rejects an individual asset at or above 2 GiB. If a full
 Wharf package reaches that threshold, move game artifacts to an object-storage
 provider; the catalog format already supports that migration.
 
-## Connect the launcher to the catalog
-
-The repository setting is compiled into distributable builds:
+On Windows, if GitHub CLI is installed but `gh` is not available on `PATH`,
+point the publisher directly to the executable before running `game:publish`:
 
 ```powershell
-$env:COLDEM_GITHUB_REPOSITORY = "OWNER/coldem-delivery"
+$env:GH_PATH = "C:\path\to\gh.exe"
+```
+
+## Connect the launcher to the catalog
+
+The distributable launcher defaults to `DnCold/Coldem-delivery`. To override
+it for another deployment, set the repository while building:
+
+```powershell
+$env:COLDEM_GITHUB_REPOSITORY = "OTHER/DELIVERY-REPOSITORY"
 pnpm tauri build
 ```
 
@@ -118,9 +125,9 @@ $env:COLDEM_MANIFEST_URL = "https://downloads.example.com/coldem-manifest.json"
 pnpm tauri dev
 ```
 
-Without either setting the launcher opens normally with an empty catalog and a
-configuration notice. Once configured, friends simply open Coldem and press
-Install; they never authenticate with GitHub.
+If the remote catalog is temporarily unreachable, the launcher falls back to
+the last verified copy. Friends simply open Coldem and press Install; they
+never authenticate with GitHub.
 
 ## Integrity and signing
 
@@ -134,7 +141,7 @@ minisign -G -p "D:\Keys\coldem.pub" -s "D:\Keys\coldem.key"
 pnpm game:publish -- <normal arguments> --minisign-key "D:\Keys\coldem.key"
 
 $env:COLDEM_CATALOG_PUBKEY = (Get-Content -Raw "D:\Keys\coldem.pub")
-$env:COLDEM_GITHUB_REPOSITORY = "OWNER/coldem-delivery"
+$env:COLDEM_GITHUB_REPOSITORY = "DnCold/Coldem-delivery"
 pnpm tauri build
 ```
 
@@ -144,25 +151,46 @@ without it still verify artifact SHA-256 and show a security notice.
 
 ## Update the launcher itself
 
-Game updates and launcher updates are separate. Use another public repository,
-for example `OWNER/coldem-launcher`, for signed Tauri updater artifacts. Do not
-mix it with `coldem-delivery`, because both workflows need their own `latest`
-Release.
+Game updates and launcher updates are separate. Use `DnCold/Coldem-launcher`
+for signed Tauri updater artifacts. Do not mix launcher artifacts with
+`Coldem-delivery`, because both workflows need their own `latest` Release.
 
-Generate and back up the Tauri signing key once, then build the release:
+The app checks this endpoint when it starts:
 
-```powershell
-pnpm tauri signer generate -w "D:\Keys\coldem-tauri.key"
-$env:TAURI_SIGNING_PRIVATE_KEY = "D:\Keys\coldem-tauri.key"
-$env:COLDEM_UPDATE_PUBKEY = Get-Content -Raw "D:\Keys\coldem-tauri.key.pub"
-$env:COLDEM_UPDATE_ENDPOINT = "https://github.com/OWNER/coldem-launcher/releases/latest/download/latest.json"
-$env:COLDEM_GITHUB_REPOSITORY = "OWNER/coldem-delivery"
-pnpm tauri build --config src-tauri/tauri.release.conf.json
+```text
+https://github.com/DnCold/Coldem-launcher/releases/latest/download/latest.json
 ```
 
-Upload the generated updater bundle, its signature, and a Tauri-compatible
-`latest.json` to the launcher Release. The installer can also live in that
-Release for friends downloading Coldem for the first time.
+When a newer signed version exists, the update icon lights up. The player can
+download it, Coldem installs it in passive mode, and then relaunches. The public
+verification key is compiled into the app; the private signing key must never
+be committed.
+
+The private key for this deployment is stored locally at:
+
+```text
+C:\Users\DanCold\.tauri\coldem-launcher.key
+```
+
+Back it up somewhere secure. Losing it means existing installations can no
+longer accept new updates. Store its contents as the
+`TAURI_SIGNING_PRIVATE_KEY` Actions secret in `DnCold/Coldem-launcher`. If the
+key is password protected, also store the password as
+`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+
+The `Release launcher` workflow builds the Windows NSIS installer, signs it,
+publishes a GitHub Release, and generates `latest.json`. To publish, update the
+same semantic version in `package.json`, `src-tauri/tauri.conf.json`, and
+`src-tauri/Cargo.toml`, commit it, then push the matching tag:
+
+```powershell
+git tag v0.2.1
+git push origin v0.2.1
+```
+
+The tag and app version must match exactly. Version `0.2.0` is the first build
+that knows this update endpoint, so older installations need to install it once
+manually; every later version can update through the launcher.
 
 ## Verification
 

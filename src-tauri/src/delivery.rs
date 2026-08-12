@@ -19,9 +19,10 @@ use tauri_plugin_shell::ShellExt;
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use tokio::{fs::OpenOptions, io::AsyncWriteExt, sync::RwLock};
 
-const EMBEDDED_CATALOG: &str = include_str!("../resources/catalog.json");
+const EMBEDDED_CATALOG: &str = include_str!("../resources/coldem-manifest.json");
 const PLATFORM: &str = "windows-x86_64";
 const PROFILE_ID: u64 = 1;
+const DEFAULT_GITHUB_REPOSITORY: &str = "DnCold/Coldem-delivery";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -785,12 +786,13 @@ fn manifest_url() -> Option<String> {
         .map(str::to_owned)
         .or_else(|| std::env::var("COLDEM_MANIFEST_URL").ok())
         .or_else(|| {
-            option_env!("COLDEM_GITHUB_REPOSITORY")
+            let repository = option_env!("COLDEM_GITHUB_REPOSITORY")
                 .map(str::to_owned)
                 .or_else(|| std::env::var("COLDEM_GITHUB_REPOSITORY").ok())
-                .map(|repository| {
-                    format!("https://github.com/{repository}/releases/latest/download/coldem-manifest.json")
-                })
+                .unwrap_or_else(|| DEFAULT_GITHUB_REPOSITORY.to_owned());
+            Some(format!(
+                "https://github.com/{repository}/releases/latest/download/coldem-manifest.json"
+            ))
         })
 }
 

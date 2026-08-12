@@ -35,9 +35,7 @@ pub fn run() {
             }
         }));
 
-        if app_updates::is_configured() {
-            builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
-        }
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     }
 
     builder
