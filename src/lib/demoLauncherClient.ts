@@ -60,7 +60,9 @@ const upload: Upload = {
 const caves: Cave[] = [];
 const operationHandlers = new Set<(event: OperationEvent) => void>();
 const promptHandlers = new Set<(prompt: ButlerPrompt) => void>();
-const showLoginPreview = new URLSearchParams(window.location.search).has("login");
+const previewParams = new URLSearchParams(window.location.search);
+const showLoginPreview = previewParams.has("login");
+const showPromptPreview = previewParams.has("prompt");
 
 const emitOperation = (event: OperationEvent) => {
   operationHandlers.forEach((handler) => handler(event));
@@ -143,6 +145,15 @@ export const demoLauncherClient: LauncherClient = {
   },
   onPrompt: async (handler) => {
     promptHandlers.add(handler);
+    if (showPromptPreview) {
+      window.setTimeout(() => handler({
+        id: "preview-license",
+        method: "AcceptLicense",
+        params: {
+          text: "COLD STORAGE LICENSE // Preview only\n\nKeep playing. Stay kind. Stay cold."
+        }
+      }), 60);
+    }
     return (() => promptHandlers.delete(handler)) as UnlistenFn;
   }
 };

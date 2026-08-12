@@ -1,5 +1,6 @@
 import { FileText, ShieldCheck, X } from "lucide-react";
 import type { ButlerPrompt, Upload } from "../../types/launcher";
+import { PetSticker } from "../../components/PetSticker";
 
 interface PromptDialogProps {
   prompt: ButlerPrompt;
@@ -35,6 +36,8 @@ export function PromptDialog({ prompt, onRespond }: PromptDialogProps) {
   return (
     <div className="dialog-backdrop">
       <section className="dialog prompt-dialog" role="dialog" aria-modal="true">
+        <div className="dialog-graffiti" aria-hidden="true"><span>YOUR CALL</span><i>✦ ✦</i><b>?</b></div>
+        <PetSticker kind="yin" variant={3} className="dialog-pet dialog-pet--prompt" decorative />
         <header className="dialog__header">
           <div className="prompt-dialog__title">
             {isLicense ? <FileText size={21} /> : <ShieldCheck size={21} />}

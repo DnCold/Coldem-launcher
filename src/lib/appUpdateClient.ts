@@ -22,9 +22,13 @@ const nativeClient: AppUpdateClient = {
   install: () => invoke("install_launcher_update")
 };
 
+const showUpdatePreview = new URLSearchParams(window.location.search).has("update");
+
 const demoClient: AppUpdateClient = {
-  status: async () => ({ configured: false, currentVersion: "0.1.0-preview" }),
-  check: async () => null,
+  status: async () => ({ configured: showUpdatePreview, currentVersion: "0.2.1-preview" }),
+  check: async () => showUpdatePreview
+    ? { currentVersion: "0.2.1", version: "0.2.2" }
+    : null,
   install: async () => undefined
 };
 

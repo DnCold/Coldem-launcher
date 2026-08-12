@@ -87,6 +87,7 @@ export function GameCard({
         </span>
         <PetSticker
           kind={stickerKinds[game.id % stickerKinds.length]}
+          seed={game.id}
           className="game-card__sticker"
           decorative
         />

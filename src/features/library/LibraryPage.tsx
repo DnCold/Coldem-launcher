@@ -138,6 +138,14 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
         <span className="grunge-overlay__slashes">///</span>
         <span className="grunge-overlay__code">DNCLD // COLD DELIVERY</span>
       </div>
+      <div className="street-fx" aria-hidden="true">
+        <span className="street-fx__orbit" />
+        <span className="street-fx__crown">♕</span>
+        <span className="street-fx__tag">COLD<br /><b>MODE</b></span>
+        <span className="street-fx__spark">✦</span>
+        <span className="street-fx__arrow">→</span>
+        <span className="street-fx__stamp">PROPERTY OF<br /><b>DANCOLD</b></span>
+      </div>
       <aside className="sidebar">
         <div className="sidebar__brand">
           <BrandMark />
@@ -146,6 +154,9 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
             <strong>Always.</strong>
           </div>
           <div className="brand-scribble" aria-hidden="true">✦ // ★</div>
+          <div className="brand-graffiti" aria-hidden="true">
+            <span>COLD</span><b>EM!</b><i>〰〰</i>
+          </div>
         </div>
 
         <nav className="sidebar__nav" aria-label="Main navigation">
@@ -168,7 +179,8 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
         </nav>
 
         <div className="sidebar-mascot">
-          <PetSticker kind="yang" decorative />
+          <span className="sidebar-mascot__burst" aria-hidden="true">✶</span>
+          <PetSticker kind="yin" variant={1} decorative />
           <span className="sidebar-mascot__note">Stay cold.<br />Play hard.</span>
         </div>
         <div className="sidebar__footer">
@@ -236,7 +248,12 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
                 <i>★</i>
                 <b>••••••</b>
               </div>
-              <PetSticker kind="yin" className="featured-hero__sticker" decorative />
+              <div className="featured-hero__graffiti" aria-hidden="true">
+                <span>ROCK!</span>
+                <i>×</i><i>×</i><i>×</i>
+                <b>NO SLEEP<br />JUST PLAY</b>
+              </div>
+              <PetSticker kind="yin" variant={4} className="featured-hero__sticker" decorative />
             </section>
           )}
 
@@ -273,9 +290,9 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
           <button type="button" className="icon-button" aria-label="Notifications"><Bell size={18} /></button>
         </section>
 
-        <div className="pet-pair" aria-label="Yin and Yang">
-          <PetSticker kind="yin" />
-          <PetSticker kind="yang" />
+        <div className="pet-pair" aria-label="Yin, the black cat, and Yang, the white cat">
+          <PetSticker kind="yin" variant={1} />
+          <PetSticker kind="yang" variant={1} />
         </div>
         <div className="rail-sticker-strip" aria-hidden="true">
           <span>★</span><i>DNCLD</i><b>|||||||||||</b><em>☺</em>
@@ -292,7 +309,7 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
         </section>
 
         <section className="hamster-note">
-          <div><PetSticker kind="deadpool" /><PetSticker kind="wolverine" /></div>
+          <div><PetSticker kind="deadpool" variant={2} /><PetSticker kind="wolverine" variant={3} /></div>
           <p>Small paws.<br /><strong>Big adventures.</strong></p>
         </section>
 

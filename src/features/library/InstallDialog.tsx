@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Download, HardDrive, X } from "lucide-react";
+import { PetSticker } from "../../components/PetSticker";
 import type { InstallOptions, InstallPlan, Upload } from "../../types/launcher";
 
 interface InstallDialogProps {
@@ -74,6 +75,7 @@ export function InstallDialog({
         aria-labelledby="install-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
+        <div className="dialog-graffiti" aria-hidden="true"><span>INSTALL!</span><i>× × ×</i><b>///</b></div>
         <header className="dialog__header">
           <div>
             <p className="eyebrow">READY TO INSTALL</p>
@@ -85,6 +87,7 @@ export function InstallDialog({
         </header>
 
         <div className="install-dialog__body">
+          <PetSticker kind="deadpool" variant={4} className="dialog-pet dialog-pet--install" decorative />
           <p className="field-label">Choose a version</p>
           <div className="upload-list">
             {options.uploads.map((upload) => (

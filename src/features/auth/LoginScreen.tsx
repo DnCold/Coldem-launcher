@@ -42,10 +42,10 @@ export function LoginScreen({
           <div className="login-art__scribble">PLAY // BUILD // REPEAT</div>
         </div>
         <div className="login-pets">
-          <PetSticker kind="yin" decorative />
-          <PetSticker kind="yang" decorative />
-          <PetSticker kind="deadpool" decorative />
-          <PetSticker kind="wolverine" decorative />
+          <PetSticker kind="yin" variant={2} decorative />
+          <PetSticker kind="yang" variant={3} decorative />
+          <PetSticker kind="deadpool" variant={4} decorative />
+          <PetSticker kind="wolverine" variant={2} decorative />
         </div>
         <div className="login-art__copy">
           <Gamepad2 size={18} />
