@@ -1,0 +1,14 @@
+node_modules/
+.pnpm-store/
+dist/
+tmp/
+release/
+*.log
+.DS_Store
+.idea/
+.vscode/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/binaries/butler-*
+!src-tauri/binaries/README.md
+.coldem-publisher/

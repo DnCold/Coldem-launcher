@@ -1,0 +1,311 @@
+import { useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  Bell,
+  Clock3,
+  Download,
+  Gamepad2,
+  HardDrive,
+  Home,
+  Library,
+  LoaderCircle,
+  LogOut,
+  Music2,
+  RefreshCw,
+  Search,
+  Settings2,
+  Sparkles,
+  Zap
+} from "lucide-react";
+import { BrandMark } from "../../components/BrandMark";
+import { PetSticker } from "../../components/PetSticker";
+import { AppUpdateButton } from "../app-update/AppUpdateButton";
+import type { useLauncher } from "../../hooks/useLauncher";
+import type { GameRecord, InstallOptions, Upload } from "../../types/launcher";
+import dancoldLogo from "../../assets/dancold-logo.png";
+import { GameCard } from "./GameCard";
+import { InstallDialog } from "./InstallDialog";
+
+type LauncherState = ReturnType<typeof useLauncher>;
+type LibraryFilter = "home" | "all" | "installed" | "updates";
+
+interface LibraryPageProps {
+  launcher: LauncherState;
+}
+
+const formatPlaytime = (seconds: number) => {
+  if (seconds < 60) return "Just installed";
+  if (seconds < 3600) return `${Math.max(1, Math.round(seconds / 60))}m played`;
+  return `${Math.round(seconds / 3600)}h played`;
+};
+
+export function LibraryPage({ launcher }: LibraryPageProps) {
+  const [filter, setFilter] = useState<LibraryFilter>("home");
+  const [query, setQuery] = useState("");
+  const [installOptions, setInstallOptions] = useState<InstallOptions | null>(null);
+  const [installingRecord, setInstallingRecord] = useState<GameRecord | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const caveByGame = useMemo(
+    () => new Map(launcher.library?.caves.map((cave) => [cave.game.id, cave])),
+    [launcher.library?.caves]
+  );
+  const updateByGame = useMemo(
+    () => new Map(launcher.updates.map((update) => [update.game.id, update])),
+    [launcher.updates]
+  );
+
+  const games = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    return (launcher.library?.records ?? []).filter((game) => {
+      if (normalizedQuery && !game.title.toLocaleLowerCase().includes(normalizedQuery)) return false;
+      if (filter === "installed") return caveByGame.has(game.id);
+      if (filter === "updates") return updateByGame.has(game.id);
+      return true;
+    });
+  }, [caveByGame, filter, launcher.library?.records, query, updateByGame]);
+
+  const recentCave = useMemo(
+    () => [...(launcher.library?.caves ?? [])].sort((a, b) =>
+      Date.parse(b.interaction?.lastRunAt ?? b.stats.lastTouchedAt ?? b.stats.installedAt ?? "0") -
+      Date.parse(a.interaction?.lastRunAt ?? a.stats.lastTouchedAt ?? a.stats.installedAt ?? "0")
+    )[0],
+    [launcher.library?.caves]
+  );
+
+  const featuredRecord = useMemo(() => {
+    const records = launcher.library?.records ?? [];
+    return records.find((record) => record.id === recentCave?.game.id) ?? records[0];
+  }, [launcher.library?.records, recentCave?.game.id]);
+  const featuredCave = featuredRecord ? caveByGame.get(featuredRecord.id) : undefined;
+  const featuredUpdate = featuredRecord ? updateByGame.get(featuredRecord.id) : undefined;
+  const featuredOperation = featuredRecord ? launcher.operations[featuredRecord.id] : undefined;
+  const isFeaturedBusy = featuredOperation && !["finished", "failed"].includes(featuredOperation.state);
+
+  const activeOperations = useMemo(
+    () => Object.values(launcher.operations).filter((operation) =>
+      !["finished", "failed"].includes(operation.state)
+    ),
+    [launcher.operations]
+  );
+
+  const openInstall = async (game: GameRecord) => {
+    setInstallingRecord(game);
+    setActionError(null);
+    try {
+      setInstallOptions(await launcher.prepareInstall(game.id));
+    } catch (reason) {
+      setActionError(String(reason));
+      setInstallingRecord(null);
+    }
+  };
+
+  const closeInstall = () => {
+    setInstallOptions(null);
+    setInstallingRecord(null);
+  };
+
+  const performInstall = (upload: Upload) => {
+    if (!installOptions) return;
+    safely(launcher.install(installOptions.game, upload, installOptions.installLocationId));
+  };
+
+  const safely = (work: Promise<void>) => {
+    setActionError(null);
+    void work.catch((reason) => setActionError(String(reason)));
+  };
+
+  const runFeatured = () => {
+    if (!featuredRecord || isFeaturedBusy) return;
+    if (featuredCave && featuredUpdate) {
+      safely(launcher.update(featuredCave.id, featuredRecord.id));
+    } else if (featuredCave) {
+      safely(launcher.play(featuredCave.id, featuredRecord.id));
+    } else {
+      void openInstall(featuredRecord);
+    }
+  };
+
+  const featuredAction = isFeaturedBusy
+    ? featuredOperation.kind === "play" ? "Running" : `${Math.round((featuredOperation.progress ?? 0) * 100)}%`
+    : featuredUpdate ? "Update" : featuredCave ? "Play" : "Install";
+
+  return (
+    <main className="app-shell">
+      <div className="grunge-overlay" aria-hidden="true">
+        <span className="grunge-overlay__star">★</span>
+        <span className="grunge-overlay__cross">× × ×</span>
+        <span className="grunge-overlay__slashes">///</span>
+        <span className="grunge-overlay__code">DNCLD // COLD DELIVERY</span>
+      </div>
+      <aside className="sidebar">
+        <div className="sidebar__brand">
+          <BrandMark />
+          <div className="brand-motto">
+            <span>Colder than all.</span>
+            <strong>Always.</strong>
+          </div>
+          <div className="brand-scribble" aria-hidden="true">✦ // ★</div>
+        </div>
+
+        <nav className="sidebar__nav" aria-label="Main navigation">
+          <button type="button" className={filter === "home" ? "active" : ""} onClick={() => setFilter("home")}>
+            <Home size={19} /> <span>Home</span><i>✦</i>
+          </button>
+          <button type="button" className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>
+            <Library size={19} /> <span>Library</span><small>{launcher.library?.records.length ?? 0}</small>
+          </button>
+          <button type="button" className={filter === "installed" ? "active" : ""} onClick={() => setFilter("installed")}>
+            <HardDrive size={19} /> <span>Installed</span><small>{launcher.library?.caves.length ?? 0}</small>
+          </button>
+          <button type="button" className={filter === "updates" ? "active" : ""} onClick={() => setFilter("updates")}>
+            <Download size={19} /> <span>Updates</span>
+            {launcher.updates.length > 0 && <em>{launcher.updates.length}</em>}
+          </button>
+          <button type="button" disabled title="Settings module placeholder">
+            <Settings2 size={19} /> <span>Settings</span>
+          </button>
+        </nav>
+
+        <div className="sidebar-mascot">
+          <PetSticker kind="yang" decorative />
+          <span className="sidebar-mascot__note">Stay cold.<br />Play hard.</span>
+        </div>
+        <div className="sidebar__footer">
+          <p>Thanks for being here.</p>
+          <small>You make Coldem awesome!</small>
+        </div>
+      </aside>
+
+      <section className="main-view">
+        <header className="topbar">
+          <div>
+            <p className="eyebrow">WELCOME BACK</p>
+            <h1>Ready to play?</h1>
+          </div>
+          <div className="topbar__tools">
+            <label className="search-field">
+              <Search size={17} />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search games" aria-label="Search games" />
+            </label>
+            <button type="button" className="icon-button" onClick={() => void launcher.refresh()} aria-label="Refresh library" disabled={launcher.isRefreshing}>
+              <RefreshCw size={18} className={launcher.isRefreshing ? "spin" : ""} />
+            </button>
+            <AppUpdateButton />
+          </div>
+        </header>
+
+        <div className="content-scroll">
+          {launcher.bootstrap && !launcher.bootstrap.catalogRestricted && (
+            <section className="catalog-warning" role="status">
+              <AlertTriangle size={18} />
+              <div><strong>This developer build has no release catalog yet.</strong><p>Set COLDEM_GITHUB_REPOSITORY when building to connect the public game releases.</p></div>
+            </section>
+          )}
+
+          {(launcher.libraryError || launcher.library?.warning) && (
+            <section className="library-alert" role="alert">
+              <AlertTriangle size={18} />
+              <div>
+                <strong>{launcher.library ? "Some live data is unavailable" : "The library could not be loaded"}</strong>
+                <p>{launcher.libraryError || launcher.library?.warning}</p>
+              </div>
+              <button type="button" onClick={() => void launcher.refresh()} disabled={launcher.isRefreshing}>
+                <RefreshCw size={14} className={launcher.isRefreshing ? "spin" : ""} /> Retry
+              </button>
+            </section>
+          )}
+
+          {featuredRecord && filter === "home" && !query && (
+            <section className={`featured-hero cover-fallback--${featuredRecord.id % 8}`}>
+              {featuredRecord.cover && <img className="featured-hero__image" src={featuredRecord.cover} alt="" />}
+              <div className="featured-hero__wash" />
+              <div className="featured-hero__copy">
+                <span className="feature-tag"><Sparkles size={13} /> Featured</span>
+                <h2>{featuredRecord.title}</h2>
+                <p>{featuredCave?.game.shortText || "A strange new world is waiting beyond the loading screen."}</p>
+                <div className="featured-hero__actions">
+                  <button type="button" className="hero-play-button" onClick={runFeatured} disabled={Boolean(isFeaturedBusy)}>
+                    <Gamepad2 size={20} fill="currentColor" /> {featuredAction}
+                  </button>
+                  {featuredCave && <span><Clock3 size={15} /> {formatPlaytime(featuredCave.interaction?.secondsRun ?? featuredCave.stats.secondsRun)}</span>}
+                </div>
+              </div>
+              <div className="featured-hero__doodles" aria-hidden="true">
+                <span>PLAY<br />// COLD</span>
+                <i>★</i>
+                <b>••••••</b>
+              </div>
+              <PetSticker kind="yin" className="featured-hero__sticker" decorative />
+            </section>
+          )}
+
+          <section className="library-section">
+            <div className="section-heading">
+              <div><p className="eyebrow">{filter === "home" || filter === "all" ? "YOUR WORLDS" : filter.toUpperCase()}</p><h2>{filter === "home" || filter === "all" ? "Game collection" : filter === "installed" ? "Ready to play" : "Available updates"}</h2></div>
+              <span>{games.length} {games.length === 1 ? "game" : "games"}</span>
+            </div>
+
+            {!launcher.library ? (
+              launcher.libraryError ? (
+                <div className="empty-library"><AlertTriangle size={28} /><h3>Couldn't load the library</h3><p>Use Retry above. Coldem will never keep this screen spinning forever again.</p></div>
+              ) : (
+                <div className="library-loading"><LoaderCircle className="spin" /> Loading your games...</div>
+              )
+            ) : games.length === 0 ? (
+              <div className="empty-library"><Gamepad2 size={28} /><h3>Nothing here yet</h3><p>{query ? "Try a different search." : "This view is all caught up."}</p></div>
+            ) : (
+              <div className="game-grid">
+                {games.map((game) => {
+                  const cave = caveByGame.get(game.id);
+                  return <GameCard key={game.id} game={game} cave={cave} update={updateByGame.get(game.id)} operation={launcher.operations[game.id]} onInstall={() => void openInstall(game)} onUpdate={() => cave && safely(launcher.update(cave.id, game.id))} onPlay={() => cave && safely(launcher.play(cave.id, game.id))} onOpenPage={game.url ? () => void launcher.openExternal(game.url!) : undefined} />;
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+      </section>
+
+      <aside className="activity-rail">
+        <section className="profile-card">
+          <img src={launcher.profile?.user.coverUrl || dancoldLogo} alt="" />
+          <div><strong>{launcher.profile?.user.displayName || launcher.profile?.user.username}</strong><small><i /> Ready to play</small></div>
+          <button type="button" className="icon-button" aria-label="Notifications"><Bell size={18} /></button>
+        </section>
+
+        <div className="pet-pair" aria-label="Yin and Yang">
+          <PetSticker kind="yin" />
+          <PetSticker kind="yang" />
+        </div>
+        <div className="rail-sticker-strip" aria-hidden="true">
+          <span>★</span><i>DNCLD</i><b>|||||||||||</b><em>☺</em>
+        </div>
+
+        <section className="downloads-panel">
+          <div className="rail-heading"><h2>Downloads</h2>{activeOperations.length > 0 && <span>{activeOperations.length}</span>}</div>
+          {activeOperations.length === 0 ? (
+            <div className="downloads-empty"><Zap size={22} /><strong>All clear</strong><p>No active installs or updates.</p></div>
+          ) : activeOperations.map((operation) => {
+            const game = launcher.library?.records.find((record) => record.id === operation.gameId);
+            return <div className="download-row" key={`${operation.kind}-${operation.gameId}`}><div className={`download-row__cover cover-fallback--${operation.gameId % 8}`}>{game?.title.slice(0, 1)}</div><div className="download-row__body"><strong>{game?.title || "Game"}</strong><small>{operation.kind === "install" ? "Installing" : operation.kind === "update" ? "Updating" : "Starting"}...</small><div><i style={{ width: `${Math.round((operation.progress ?? 0) * 100)}%` }} /></div><span>{Math.round((operation.progress ?? 0) * 100)}%</span></div></div>;
+          })}
+        </section>
+
+        <section className="hamster-note">
+          <div><PetSticker kind="deadpool" /><PetSticker kind="wolverine" /></div>
+          <p>Small paws.<br /><strong>Big adventures.</strong></p>
+        </section>
+
+        <section className="rail-radio">
+          <Music2 size={19} /><div><strong>Cold storage radio</strong><small>lo-fi beats / focus mode</small></div><span>♪</span>
+        </section>
+
+        <button type="button" className="logout-button" onClick={() => void launcher.logout()}><LogOut size={16} /> Leave library</button>
+      </aside>
+
+      {installingRecord && !installOptions && <div className="dialog-backdrop"><div className="preparing-install"><LoaderCircle className="spin" /> Preparing {installingRecord.title}...</div></div>}
+      {installOptions && <InstallDialog options={installOptions} onPlan={launcher.planInstall} onInstall={performInstall} onClose={closeInstall} />}
+      {actionError && <button type="button" className="error-toast" onClick={() => setActionError(null)}><span>{actionError}</span><small>Dismiss</small></button>}
+    </main>
+  );
+}
