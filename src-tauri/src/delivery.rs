@@ -505,9 +505,48 @@ impl DeliveryService {
             save_receipts(app, &receipts)?;
             Ok(child)
         })();
-        let operation_result = result.as_ref().map(|_| ()).map_err(|error| error.clone());
-        self.finish_operation(app, "play", game_id, &operation_result);
+        match &result {
+            Ok(_) => self.emit(
+                app,
+                "play",
+                game_id,
+                "running",
+                Some(1.0),
+                None,
+                None,
+                Some("Game session is running".into()),
+            ),
+            Err(error) => self.finish_operation(app, "play", game_id, &Err(error.clone())),
+        }
         result
+    }
+
+    pub fn record_play_finished(
+        &self,
+        app: &AppHandle,
+        game_id: u64,
+        duration: Duration,
+    ) -> Result<(), String> {
+        let seconds = duration.as_secs();
+        let mut receipts = load_receipts(app)?;
+        let receipt = receipts
+            .iter_mut()
+            .find(|receipt| receipt.game_id == game_id)
+            .ok_or_else(|| "Could not find the installed game session".to_string())?;
+        receipt.seconds_run = receipt.seconds_run.saturating_add(seconds);
+        receipt.last_touched_at = now_string();
+        save_receipts(app, &receipts)?;
+        self.emit(
+            app,
+            "play",
+            game_id,
+            "finished",
+            Some(1.0),
+            None,
+            None,
+            Some(format!("Session complete · {seconds}s recorded")),
+        );
+        Ok(())
     }
 
     async fn download_artifact(

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Bell,
@@ -28,6 +28,7 @@ import type { GameRecord, InstallOptions, Upload } from "../../types/launcher";
 import dancoldLogo from "../../assets/dancold-logo.png";
 import { GameCard } from "./GameCard";
 import { InstallDialog } from "./InstallDialog";
+import { SettingsDialog } from "./SettingsDialog";
 
 type LauncherState = ReturnType<typeof useLauncher>;
 type LibraryFilter = "home" | "all" | "installed" | "updates";
@@ -42,6 +43,13 @@ const formatPlaytime = (seconds: number) => {
   return `${Math.round(seconds / 3600)}h played`;
 };
 
+const formatLiveSession = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  if (minutes < 1) return `LIVE // ${String(remainder).padStart(2, "0")}s`;
+  return `LIVE // ${minutes}m ${String(remainder).padStart(2, "0")}s`;
+};
+
 export function LibraryPage({ launcher }: LibraryPageProps) {
   const social = useSocial();
   const [filter, setFilter] = useState<LibraryFilter>("home");
@@ -49,6 +57,7 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
   const [installOptions, setInstallOptions] = useState<InstallOptions | null>(null);
   const [installingRecord, setInstallingRecord] = useState<GameRecord | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const caveByGame = useMemo(
     () => new Map(launcher.library?.caves.map((cave) => [cave.game.id, cave])),
@@ -85,10 +94,30 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
   const featuredUpdate = featuredRecord ? updateByGame.get(featuredRecord.id) : undefined;
   const featuredOperation = featuredRecord ? launcher.operations[featuredRecord.id] : undefined;
   const isFeaturedBusy = featuredOperation && !["finished", "failed"].includes(featuredOperation.state);
+  const isFeaturedPlaying = featuredOperation?.kind === "play" && featuredOperation.state === "running";
+  const playingOperation = useMemo(
+    () => Object.values(launcher.operations).find((operation) => operation.kind === "play" && operation.state === "running"),
+    [launcher.operations]
+  );
+  const playingRecord = playingOperation
+    ? launcher.library?.records.find((record) => record.id === playingOperation.gameId)
+    : undefined;
+  const [sessionNow, setSessionNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!playingOperation) return;
+    setSessionNow(Date.now());
+    const interval = window.setInterval(() => setSessionNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [playingOperation]);
+
+  const liveSessionSeconds = playingOperation
+    ? Math.max(0, Math.floor((sessionNow - playingOperation.startedAt) / 1000))
+    : 0;
 
   const activeOperations = useMemo(
     () => Object.values(launcher.operations).filter((operation) =>
-      !["finished", "failed"].includes(operation.state)
+      !["finished", "failed"].includes(operation.state) && operation.kind !== "play"
     ),
     [launcher.operations]
   );
@@ -170,6 +199,7 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
         </div>
 
         <nav className="sidebar__nav" aria-label="Main navigation">
+          <p>Control deck</p>
           <button type="button" className={filter === "home" ? "active" : ""} onClick={() => setFilter("home")}>
             <Home size={19} /> <span>Home</span><i>✦</i>
           </button>
@@ -183,10 +213,15 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
             <Download size={19} /> <span>Updates</span>
             {launcher.updates.length > 0 && <em>{launcher.updates.length}</em>}
           </button>
-          <button type="button" disabled title="Settings module placeholder">
+          <button type="button" onClick={() => setSettingsOpen(true)}>
             <Settings2 size={19} /> <span>Settings</span>
           </button>
         </nav>
+
+        <div className="sidebar-signal" aria-label="Coldem system signal">
+          <span><i /> SIGNAL</span><b>{playingRecord ? "PLAYING" : "STABLE"}</b>
+          <em><i /><i /><i /><i /></em>
+        </div>
 
         <div className="sidebar-mascot">
           <span className="sidebar-mascot__burst" aria-hidden="true">✶</span>
@@ -221,7 +256,7 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
           <span><i className="coldem-status-strip__pulse" /> COLD SYSTEM ONLINE</span>
           <b>{installedCount} INSTALLED</b>
           <b className={updatesCount > 0 ? "coldem-status-strip__updates" : ""}>{updatesCount > 0 ? `${updatesCount} UPDATE${updatesCount === 1 ? "" : "S"} READY` : "ALL PATCHED"}</b>
-          <em>DNCLD // {filter === "home" ? "HOME BASE" : filter.toUpperCase()}</em>
+          <em className={playingRecord ? "coldem-status-strip__live" : ""}>{playingRecord ? `${formatLiveSession(liveSessionSeconds)} · ${playingRecord.title}` : `DNCLD // ${filter === "home" ? "HOME BASE" : filter.toUpperCase()}`}</em>
         </section>
 
         <div className="content-scroll">
@@ -250,7 +285,9 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
               {featuredRecord.cover && <img className="featured-hero__image" src={featuredRecord.cover} alt="" />}
               <div className="featured-hero__wash" />
               <div className="featured-hero__copy">
-                <span className="feature-tag"><Sparkles size={13} /> Featured</span>
+                <span className={`feature-tag ${isFeaturedPlaying ? "feature-tag--live" : ""}`}>
+                  {isFeaturedPlaying ? <><i /> On air</> : <><Sparkles size={13} /> Featured</>}
+                </span>
                 <h2>{featuredRecord.title}</h2>
                 <p>{featuredCave?.game.shortText || "A strange new world is waiting beyond the loading screen."}</p>
                 <div className="featured-hero__actions">
@@ -260,9 +297,13 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
                   {featuredCave && <span><Clock3 size={15} /> {formatPlaytime(featuredCave.interaction?.secondsRun ?? featuredCave.stats.secondsRun)}</span>}
                 </div>
                 <div className="featured-hero__intel" aria-label="Featured game details">
-                  <span><i /> {featuredCave ? "IN YOUR LIBRARY" : "FRESH DROP"}</span>
+                  <span><i /> {isFeaturedPlaying ? "SESSION LIVE" : featuredCave ? "IN YOUR LIBRARY" : "FRESH DROP"}</span>
                   <span>BY DANCOLD</span>
                   <span>BUILD // {featuredUpdate ? "UPDATE READY" : "CURRENT"}</span>
+                </div>
+                <div className="featured-hero__tape" aria-hidden="true">
+                  <span>{isFeaturedPlaying ? "LIVE SIGNAL DETECTED" : "PRESS PLAY WHEN READY"}</span>
+                  <b>/// DROP 001 ///</b>
                 </div>
               </div>
               <div className="featured-hero__doodles" aria-hidden="true">
@@ -317,11 +358,17 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
           <PetSticker kind="yin" variant={1} />
           <PetSticker kind="yang" variant={1} />
         </div>
+        <section className="crew-dossier" aria-label="DanCold crew dossier">
+          <p>DNCLD CREW // ISSUE 01</p>
+          <div><PetSticker kind="yin" variant={3} decorative /><span><b>YIN</b><small>chill signal / amber-green eyes</small></span></div>
+          <div><PetSticker kind="yang" variant={2} decorative /><span><b>YANG</b><small>serious look / green eyes</small></span></div>
+          <em>DEADPOOL + WOLVERINE<br />HAMSTER SUPPORT UNIT</em>
+        </section>
         <div className="rail-sticker-strip" aria-hidden="true">
           <span>★</span><i>DNCLD</i><b>|||||||||||</b><em>☺</em>
         </div>
 
-        <SocialPanel social={social} />
+        <SocialPanel social={social} nowPlaying={playingRecord?.title} sessionSeconds={liveSessionSeconds} />
 
         <section className="downloads-panel">
           <div className="rail-heading"><h2>Downloads</h2>{activeOperations.length > 0 && <span>{activeOperations.length}</span>}</div>
@@ -332,6 +379,9 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
             const game = launcher.library?.records.find((record) => record.id === operation.gameId);
             return <div className="download-row" key={`${operation.kind}-${operation.gameId}`}><div className={`download-row__cover cover-fallback--${operation.gameId % 8}`}>{game?.title.slice(0, 1)}</div><div className="download-row__body"><strong>{game?.title || "Game"}</strong><small>{operation.kind === "install" ? "Installing" : operation.kind === "update" ? "Updating" : "Starting"}...</small><div><i style={{ width: `${Math.round((operation.progress ?? 0) * 100)}%` }} /></div><span>{Math.round((operation.progress ?? 0) * 100)}%</span></div></div>;
           })}
+          <div className="downloads-panel__telemetry" aria-label="Patch delivery integrity">
+            <span><i /> SHA-256 VERIFIED</span><b>{activeOperations.length ? "TRANSFER ACTIVE" : "BAY IDLE"}</b>
+          </div>
         </section>
 
         <section className="rail-radio">
@@ -343,6 +393,7 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
 
       {installingRecord && !installOptions && <div className="dialog-backdrop"><div className="preparing-install"><LoaderCircle className="spin" /> Preparing {installingRecord.title}...</div></div>}
       {installOptions && <InstallDialog options={installOptions} onPlan={launcher.planInstall} onInstall={performInstall} onClose={closeInstall} />}
+      {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
       {actionError && <button type="button" className="error-toast" onClick={() => setActionError(null)}><span>{actionError}</span><small>Dismiss</small></button>}
     </main>
   );

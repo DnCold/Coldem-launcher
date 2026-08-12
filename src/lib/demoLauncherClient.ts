@@ -75,13 +75,28 @@ const simulateOperation = async (kind: OperationEvent["kind"], gameId: number) =
     emitOperation({
       kind,
       gameId,
-      state: kind === "play" && progress > 0.5 ? "running" : "working",
+      state: "working",
       progress,
       bps: 7_800_000,
       eta: Math.max(0, (1 - progress) * 8)
     });
   }
   emitOperation({ kind, gameId, state: "finished", progress: 1 });
+};
+
+const simulatePlay = async (gameId: number) => {
+  emitOperation({ kind: "play", gameId, state: "queued", progress: 0 });
+  await new Promise((resolve) => window.setTimeout(resolve, 260));
+  emitOperation({ kind: "play", gameId, state: "running", progress: 1, message: "Game session is running" });
+  await new Promise((resolve) => window.setTimeout(resolve, 4_800));
+  const cave = caves.find((entry) => entry.game.id === gameId);
+  if (cave) {
+    const lastRunAt = new Date().toISOString();
+    cave.stats.secondsRun += 5;
+    cave.stats.lastTouchedAt = lastRunAt;
+    cave.interaction = { userId: profile.id, gameId, secondsRun: cave.stats.secondsRun, lastRunAt, syncedAt: lastRunAt };
+  }
+  emitOperation({ kind: "play", gameId, state: "finished", progress: 1, message: "Session complete · 5s recorded" });
 };
 
 export const demoLauncherClient: LauncherClient = {
@@ -134,7 +149,7 @@ export const demoLauncherClient: LauncherClient = {
     });
   },
   update: async (_profileId, _caveId, gameId) => simulateOperation("update", gameId),
-  play: async (_profileId, _caveId, gameId) => simulateOperation("play", gameId),
+  play: async (_profileId, _caveId, gameId) => simulatePlay(gameId),
   respondToPrompt: async () => undefined,
   openExternal: async (target) => {
     window.open(target, "_blank", "noopener,noreferrer");

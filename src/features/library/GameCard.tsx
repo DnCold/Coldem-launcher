@@ -85,6 +85,7 @@ export function GameCard({
         <span className="game-card__genre">
           {update ? "Update ready" : cave ? "In rotation" : "New world"}
         </span>
+        {status === "playing" && <span className="game-card__live"><i /> LIVE</span>}
         <PetSticker
           kind={stickerKinds[game.id % stickerKinds.length]}
           seed={game.id}
@@ -119,6 +120,7 @@ export function GameCard({
         <div className="game-card__archive" aria-label={`${game.title} archive details`}>
           <span>#{String(game.id).slice(-4).padStart(4, "0")}</span>
           <i>{update ? "PATCH" : cave ? "ARCHIVED" : "UNLOCK"}</i>
+          {cave && <b>{cave.interaction?.secondsRun ?? cave.stats.secondsRun ? "PLAY LOG" : "NEW FILE"}</b>}
         </div>
 
         <button

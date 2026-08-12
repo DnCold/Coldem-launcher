@@ -123,11 +123,16 @@ pub async fn play_game(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let social = state.social.clone();
+    let delivery = state.delivery.clone();
     let bridge = social.prepare_game_bridge(app.clone(), game_id).await?;
-    match state.delivery.play(&app, game_id, &bridge) {
+    let started_at = std::time::Instant::now();
+    match delivery.play(&app, game_id, &bridge) {
         Ok(child) => {
             let token = bridge.token;
-            social.watch_game_process(app, game_id, token, child);
+            let tracking_app = app.clone();
+            social.watch_game_process(app, game_id, token, child, started_at, move |elapsed| {
+                let _ = delivery.record_play_finished(&tracking_app, game_id, elapsed);
+            });
             Ok(())
         }
         Err(error) => {

@@ -91,7 +91,7 @@ export function useLauncher() {
         }
       }));
 
-      if (event.state === "finished" && event.kind !== "play" && profileRef.current) {
+      if (event.state === "finished" && profileRef.current) {
         void loadLibrary(profileRef.current, true);
       }
     }).then((unlisten) => unlisteners.push(unlisten));

@@ -14,7 +14,14 @@ type SocialState = ReturnType<typeof useSocial>;
 
 interface SocialPanelProps {
   social: SocialState;
+  nowPlaying?: string;
+  sessionSeconds?: number;
 }
+
+const formatLiveSession = (seconds = 0) => {
+  const minutes = Math.floor(seconds / 60);
+  return minutes ? `${minutes}m in session` : "just launched";
+};
 
 const groupLabels: Record<SocialFriendGroup, string> = {
   playing: "Playing Coldem",
@@ -60,7 +67,7 @@ function FriendRow({
   );
 }
 
-export function SocialPanel({ social }: SocialPanelProps) {
+export function SocialPanel({ social, nowPlaying, sessionSeconds }: SocialPanelProps) {
   const snapshot = social.snapshot;
   const connected = snapshot?.connection === "connected";
   const canInvite = Boolean(snapshot?.activeSession?.joinable);
@@ -75,6 +82,14 @@ export function SocialPanel({ social }: SocialPanelProps) {
         <div><MessageCircle size={16} /><h2>Discord</h2></div>
         {connected && <span>{snapshot.friends.filter((friend) => friend.group !== "offline").length}</span>}
       </div>
+
+      {nowPlaying && (
+        <div className="social-now-playing">
+          <span><i /> NOW PLAYING</span>
+          <strong>{nowPlaying}</strong>
+          <small>{formatLiveSession(sessionSeconds)} · invite-ready when the game opens an EOS lobby</small>
+        </div>
+      )}
 
       {!snapshot ? (
         <div className="social-panel__empty"><LoaderCircle className="spin" size={18} /> Loading social...</div>

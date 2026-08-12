@@ -3,7 +3,7 @@ use std::{
     collections::HashMap,
     process::Child,
     sync::{Arc, Mutex},
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tauri::{AppHandle, Emitter};
 use tokio::{
@@ -276,16 +276,21 @@ impl SocialService {
         })
     }
 
-    pub fn watch_game_process(
+    pub fn watch_game_process<F>(
         self: &Arc<Self>,
         app: AppHandle,
         game_id: u64,
         token: String,
         mut child: Child,
-    ) {
+        started_at: Instant,
+        on_exit: F,
+    ) where
+        F: FnOnce(Duration) + Send + 'static,
+    {
         let service = Arc::clone(self);
         std::thread::spawn(move || {
             let _ = child.wait();
+            on_exit(started_at.elapsed());
             service.revoke_game_bridge(&app, game_id, &token);
         });
     }

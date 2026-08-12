@@ -18,7 +18,7 @@ use tauri::Manager;
 use tokio::sync::Mutex;
 
 pub struct AppState {
-    delivery: DeliveryService,
+    delivery: Arc<DeliveryService>,
     social: Arc<SocialService>,
     operation_lock: Mutex<()>,
 }
@@ -26,7 +26,7 @@ pub struct AppState {
 impl Default for AppState {
     fn default() -> Self {
         Self {
-            delivery: DeliveryService::default(),
+            delivery: Arc::new(DeliveryService::default()),
             social: Arc::new(SocialService::new()),
             operation_lock: Mutex::new(()),
         }
