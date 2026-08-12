@@ -23,6 +23,7 @@ const EMBEDDED_CATALOG: &str = include_str!("../resources/coldem-manifest.json")
 const PLATFORM: &str = "windows-x86_64";
 const PROFILE_ID: u64 = 1;
 const DEFAULT_GITHUB_REPOSITORY: &str = "DnCold/Coldem-delivery";
+const DEFAULT_CATALOG_PUBKEY: &str = "RWQvH5Mf5IVDcKzMNgcT3TKJMI0U39FxX0lyOZs4ONyCkWXZVih1IQoj";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -801,6 +802,7 @@ fn catalog_public_key() -> Option<String> {
         .map(str::to_owned)
         .or_else(|| std::env::var("COLDEM_CATALOG_PUBKEY").ok())
         .filter(|value| !value.trim().is_empty())
+        .or_else(|| Some(DEFAULT_CATALOG_PUBKEY.to_owned()))
 }
 
 fn parse_and_validate(bytes: &[u8]) -> Result<CatalogManifest, String> {
