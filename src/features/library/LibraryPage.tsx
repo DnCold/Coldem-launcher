@@ -28,7 +28,7 @@ import type { GameRecord, InstallOptions, Upload } from "../../types/launcher";
 import dancoldLogo from "../../assets/dancold-logo.png";
 import { GameCard } from "./GameCard";
 import { InstallDialog } from "./InstallDialog";
-import { SettingsDialog } from "./SettingsDialog";
+import { applySavedVisualPreferences, SettingsDialog } from "./SettingsDialog";
 
 type LauncherState = ReturnType<typeof useLauncher>;
 type LibraryFilter = "home" | "all" | "installed" | "updates";
@@ -58,6 +58,10 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
   const [installingRecord, setInstallingRecord] = useState<GameRecord | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    applySavedVisualPreferences();
+  }, []);
 
   const caveByGame = useMemo(
     () => new Map(launcher.library?.caves.map((cave) => [cave.game.id, cave])),

@@ -23,6 +23,11 @@ const applySetting = (key: string, value: boolean) => {
   }
 };
 
+export const applySavedVisualPreferences = () => {
+  applySetting("coldem-clarity", readSetting("coldem-clarity", false));
+  applySetting("coldem-effects", readSetting("coldem-effects", true));
+};
+
 function ToggleRow({
   icon,
   title,
