@@ -3,7 +3,7 @@ use std::{
     fs,
     io::Read,
     path::{Component, Path, PathBuf},
-    process::Command,
+    process::{Child, Command},
     time::{Duration, Instant},
 };
 
@@ -18,6 +18,8 @@ use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_shell::ShellExt;
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use tokio::{fs::OpenOptions, io::AsyncWriteExt, sync::RwLock};
+
+use crate::social::GameBridgeLaunch;
 
 const EMBEDDED_CATALOG: &str = include_str!("../resources/coldem-manifest.json");
 const PLATFORM: &str = "windows-x86_64";
@@ -463,7 +465,12 @@ impl DeliveryService {
         replace_install_dir(&install_dir, &next_dir)
     }
 
-    pub fn play(&self, app: &AppHandle, game_id: u64) -> Result<(), String> {
+    pub fn play(
+        &self,
+        app: &AppHandle,
+        game_id: u64,
+        bridge: &GameBridgeLaunch,
+    ) -> Result<Child, String> {
         self.emit(app, "play", game_id, "queued", Some(0.0), None, None, None);
         let result = (|| {
             let mut receipts = load_receipts(app)?;
@@ -488,14 +495,21 @@ impl DeliveryService {
             if !canonical_executable.starts_with(&canonical_install) {
                 return Err("The game executable resolves outside its managed installation".into());
             }
-            Command::new(&canonical_executable)
+            let child = Command::new(&canonical_executable)
                 .current_dir(&install_dir)
+                .env("COLDEM_SOCIAL_ENDPOINT", &bridge.endpoint)
+                .env("COLDEM_SOCIAL_TOKEN", &bridge.token)
                 .spawn()
                 .map_err(|error| format!("Could not start the game: {error}"))?;
             receipt.last_touched_at = now_string();
-            save_receipts(app, &receipts)
+            save_receipts(app, &receipts)?;
+            Ok(child)
         })();
-        self.finish_operation(app, "play", game_id, &result);
+        let operation_result = result
+            .as_ref()
+            .map(|_| ())
+            .map_err(|error| error.clone());
+        self.finish_operation(app, "play", game_id, &operation_result);
         result
     }
 
@@ -939,7 +953,7 @@ fn game_json(game: &GameRelease) -> Value {
             "username": "dancold",
             "displayName": "DanCold",
             "developer": true,
-            "url": "https://dancold.itch.io"
+            "url": "https://github.com/DnCold"
         }
     })
 }

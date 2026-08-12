@@ -1,6 +1,6 @@
 [package]
 name = "coldem-launcher"
-version = "0.2.2"
+version = "0.2.3"
 description = "A focused desktop launcher for DanCold games"
 authors = ["DanCold"]
 edition = "2021"
@@ -14,6 +14,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 futures-util = "0.3"
+getrandom = "0.3"
 minisign-verify = "0.2"
 open = "5"
 reqwest = { version = "0.13", features = ["stream"] }
@@ -26,7 +27,7 @@ tauri-plugin-single-instance = "2"
 tauri-plugin-shell = "2"
 tauri-plugin-updater = "2"
 time = { version = "0.3", features = ["formatting"] }
-tokio = { version = "1", features = ["fs", "io-util", "macros", "sync"] }
+tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "sync", "time"] }
 url = "2"
 
 [profile.release]

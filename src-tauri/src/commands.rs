@@ -122,7 +122,19 @@ pub async fn play_game(
     game_id: u64,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    state.delivery.play(&app, game_id)
+    let social = state.social.clone();
+    let bridge = social.prepare_game_bridge(app.clone(), game_id).await?;
+    match state.delivery.play(&app, game_id, &bridge) {
+        Ok(child) => {
+            let token = bridge.token;
+            social.watch_game_process(app, game_id, token, child);
+            Ok(())
+        }
+        Err(error) => {
+            social.revoke_game_bridge(&app, game_id, &bridge.token);
+            Err(error)
+        }
+    }
 }
 
 #[tauri::command]

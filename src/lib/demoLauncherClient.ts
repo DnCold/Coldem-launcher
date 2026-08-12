@@ -41,7 +41,7 @@ const game: Game = {
     username: "dancold",
     displayName: "DanCold",
     developer: true,
-    url: "https://dancold.itch.io"
+    url: "https://github.com/DnCold"
   }
 };
 

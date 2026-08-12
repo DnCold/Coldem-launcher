@@ -20,6 +20,8 @@ import {
 import { BrandMark } from "../../components/BrandMark";
 import { PetSticker } from "../../components/PetSticker";
 import { AppUpdateButton } from "../app-update/AppUpdateButton";
+import { SocialPanel } from "../social/SocialPanel";
+import { useSocial } from "../../hooks/useSocial";
 import type { useLauncher } from "../../hooks/useLauncher";
 import type { GameRecord, InstallOptions, Upload } from "../../types/launcher";
 import dancoldLogo from "../../assets/dancold-logo.png";
@@ -40,6 +42,7 @@ const formatPlaytime = (seconds: number) => {
 };
 
 export function LibraryPage({ launcher }: LibraryPageProps) {
+  const social = useSocial();
   const [filter, setFilter] = useState<LibraryFilter>("home");
   const [query, setQuery] = useState("");
   const [installOptions, setInstallOptions] = useState<InstallOptions | null>(null);
@@ -285,8 +288,8 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
 
       <aside className="activity-rail">
         <section className="profile-card">
-          <img src={launcher.profile?.user.coverUrl || dancoldLogo} alt="" />
-          <div><strong>{launcher.profile?.user.displayName || launcher.profile?.user.username}</strong><small><i /> Ready to play</small></div>
+          <img src={social.snapshot?.currentUser?.avatarUrl || launcher.profile?.user.coverUrl || dancoldLogo} alt="" />
+          <div><strong>{social.snapshot?.currentUser?.displayName || launcher.profile?.user.displayName || launcher.profile?.user.username}</strong><small><i /> {social.snapshot?.connection === "connected" ? "Discord connected" : "Ready to play"}</small></div>
           <button type="button" className="icon-button" aria-label="Notifications"><Bell size={18} /></button>
         </section>
 
@@ -298,6 +301,8 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
           <span>★</span><i>DNCLD</i><b>|||||||||||</b><em>☺</em>
         </div>
 
+        <SocialPanel social={social} />
+
         <section className="downloads-panel">
           <div className="rail-heading"><h2>Downloads</h2>{activeOperations.length > 0 && <span>{activeOperations.length}</span>}</div>
           {activeOperations.length === 0 ? (
@@ -306,11 +311,6 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
             const game = launcher.library?.records.find((record) => record.id === operation.gameId);
             return <div className="download-row" key={`${operation.kind}-${operation.gameId}`}><div className={`download-row__cover cover-fallback--${operation.gameId % 8}`}>{game?.title.slice(0, 1)}</div><div className="download-row__body"><strong>{game?.title || "Game"}</strong><small>{operation.kind === "install" ? "Installing" : operation.kind === "update" ? "Updating" : "Starting"}...</small><div><i style={{ width: `${Math.round((operation.progress ?? 0) * 100)}%` }} /></div><span>{Math.round((operation.progress ?? 0) * 100)}%</span></div></div>;
           })}
-        </section>
-
-        <section className="hamster-note">
-          <div><PetSticker kind="deadpool" variant={2} /><PetSticker kind="wolverine" variant={3} /></div>
-          <p>Small paws.<br /><strong>Big adventures.</strong></p>
         </section>
 
         <section className="rail-radio">

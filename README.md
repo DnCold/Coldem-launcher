@@ -5,6 +5,12 @@ not need an itch.io account, a GitHub account, or an API key. Public GitHub
 Releases host the catalog and game artifacts; the bundled `butler` executable
 installs and patches them with the Wharf format.
 
+The social panel is intentionally separate from delivery. Discord Social SDK
+provides account linking, friends, presence, and invitations; games keep EOS as
+the authority for lobbies and P2P relay. See
+[`docs/social-integration.md`](docs/social-integration.md) for the native adapter
+and secure invite flow.
+
 ## Run it
 
 ```powershell
