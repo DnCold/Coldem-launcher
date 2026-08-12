@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { BrandMark } from "../../components/BrandMark";
 import { PetSticker } from "../../components/PetSticker";
+import { WindowControls } from "../../components/WindowControls";
 import { AppUpdateButton } from "../app-update/AppUpdateButton";
 import { SocialPanel } from "../social/SocialPanel";
 import { useSocial } from "../../hooks/useSocial";
@@ -135,6 +136,10 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
 
   return (
     <main className="app-shell">
+      <div className="window-bar window-bar--app" data-tauri-drag-region>
+        <span className="window-bar__label">COLD<span>EM</span> // DANCOLD GAMES</span>
+        <WindowControls />
+      </div>
       <div className="grunge-overlay" aria-hidden="true">
         <span className="grunge-overlay__star">★</span>
         <span className="grunge-overlay__cross">× × ×</span>

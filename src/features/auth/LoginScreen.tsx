@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { BrandMark } from "../../components/BrandMark";
 import { PetSticker } from "../../components/PetSticker";
+import { WindowControls } from "../../components/WindowControls";
 
 interface LoginScreenProps {
   onLogin: () => Promise<void>;
@@ -25,6 +26,10 @@ export function LoginScreen({
 }: LoginScreenProps) {
   return (
     <main className="login-shell">
+      <div className="window-bar window-bar--login" data-tauri-drag-region>
+        <span className="window-bar__label">COLD<span>EM</span> // DANCOLD GAMES</span>
+        <WindowControls />
+      </div>
       <div className="login-grunge" aria-hidden="true">
         <span>&#10022;</span><i>DNCLD // PRIVATE ARCADE</i><b>///</b>
       </div>

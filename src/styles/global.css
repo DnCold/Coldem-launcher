@@ -27,7 +27,7 @@
 
 html, body, #root { width: 100%; min-width: 320px; height: 100%; margin: 0; }
 
-body { overflow: hidden; }
+body { overflow: hidden; font-size: 15px; }
 
 button, input { font: inherit; }
 
@@ -53,6 +53,30 @@ h1, h2, h3, p { margin: 0; }
   font-weight: 750;
   letter-spacing: 0.17em;
 }
+
+/* Frameless Coldem window + readable small-print pass. */
+.window-bar { position: relative; z-index: 80; display: flex; align-items: center; justify-content: space-between; height: 31px; padding-left: 16px; border-bottom: 1px solid rgba(177, 91, 238, .2); background: linear-gradient(90deg, #0c101b, #171124 55%, #0c101b); user-select: none; }
+.window-bar--login, .window-bar--overlay { position: absolute; top: 0; right: 0; left: 0; }
+.window-bar--login { background: linear-gradient(90deg, #101421, #1a1025 55%, #101421); }
+.window-bar--overlay { background: rgba(7, 10, 18, .8); }
+.window-bar__label { color: #c8c1d3; font: 800 10px/1 ui-monospace, monospace; letter-spacing: .13em; }
+.window-bar__label span { color: var(--acid); }
+.window-controls { display: flex; align-self: stretch; }
+.window-controls button { display: grid; width: 42px; place-items: center; border: 0; background: transparent; color: #b8b8c8; cursor: pointer; transition: background 120ms ease, color 120ms ease; }
+.window-controls button:hover { background: rgba(255,255,255,.09); color: #fff; }
+.window-controls .window-controls__close:hover { background: #d94c58; color: #fff; }
+.profile-card small { font-size: 10px; }
+.downloads-empty p, .download-row__body strong, .download-row__body > span { font-size: 10px; }
+.download-row__body small, .rail-radio strong { font-size: 9px; color: #aeb4c4; }
+.rail-radio small { font-size: 9px; color: #a0a7b8; }
+.social-panel::before, .downloads-panel::before { font-size: 7px; }
+.social-session strong, .social-friend__identity strong, .social-connect strong { font-size: 10px; }
+.social-session small, .social-friend__identity small, .social-panel__empty, .social-connect p { font-size: 9px; color: #afb5c6; }
+.social-group > p, .social-disconnect, .social-feedback { font-size: 8px; }
+.social-connect > button { font-size: 10px; }
+.game-card__title-row p, .game-card__genre { font-size: 9px; }
+.section-heading > span, .section-heading .eyebrow, .topbar .eyebrow { font-size: 10px; }
+.feature-tag { font-size: 10px; }
 
 .brand { display: inline-flex; align-items: center; gap: 10px; }
 
@@ -1282,3 +1306,60 @@ h1, h2, h3, p { margin: 0; }
   .update-dialog__body .pet-sticker { width: 100px; }
   .update-version { font-size: 19px; }
 }
+
+/* Frameless window layout and a final readability pass. */
+.window-bar--app { position: absolute; inset: 0 0 auto; }
+.app-shell { position: relative; padding-top: 41px; }
+.login-shell { padding: 42px 11px 11px; }
+.boot-screen, .error-screen { box-sizing: border-box; padding-top: 31px; }
+.screen-graffiti { top: 47px; }
+
+.eyebrow,
+.topbar .eyebrow,
+.section-heading .eyebrow { font-size: 10px; letter-spacing: .12em; }
+.profile-card small,
+.sidebar__footer small,
+.game-card__genre,
+.feature-tag,
+.library-alert p,
+.library-alert button,
+.login-panel__header > span,
+.login-panel__body > .eyebrow,
+.login-panel__footer,
+.login-art__copy p,
+.dialog__header .eyebrow,
+.dialog__footer .secondary-button,
+.update-dialog__body small,
+.update-progress span { font-size: 10px; }
+.sidebar__footer p,
+.section-heading > span,
+.game-card__title-row p,
+.download-row__body strong,
+.download-row__body small,
+.download-row__body > span,
+.rail-heading > span,
+.rail-radio strong,
+.rail-radio small,
+.social-session strong,
+.social-session small,
+.social-group > p,
+.social-friend__identity strong,
+.social-friend__identity small,
+.social-panel__empty,
+.social-connect p,
+.social-connect strong,
+.dialog p,
+.dialog small { font-size: 11px; }
+.sidebar__footer small,
+.game-card__title-row p,
+.download-row__body small,
+.rail-radio small,
+.social-session small,
+.social-friend__identity small,
+.social-panel__empty p,
+.social-connect p { color: #b8bfd1; }
+.login-panel .security-note::before { font-size: 8px; }
+.login-panel__footer { color: #abb1c3; }
+.library-alert p { color: #e0b59d; }
+.sidebar__footer p { color: #e9e4ef; }
+.downloads-empty p { font-size: 11px; color: #b8bfd1; }

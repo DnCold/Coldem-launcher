@@ -6,6 +6,7 @@ import { PromptDialog } from "../features/library/PromptDialog";
 import { isDemoMode } from "../lib/launcherClient";
 import { useLauncher } from "../hooks/useLauncher";
 import { PetSticker } from "../components/PetSticker";
+import { WindowControls } from "../components/WindowControls";
 
 export function App() {
   const launcher = useLauncher();
@@ -13,6 +14,7 @@ export function App() {
   if (launcher.status === "booting") {
     return (
       <main className="boot-screen">
+        <div className="window-bar window-bar--overlay" data-tauri-drag-region><span className="window-bar__label">COLD<span>EM</span></span><WindowControls /></div>
         <div className="screen-graffiti" aria-hidden="true">WAKE // PLAY // REPEAT</div>
         <BrandMark />
         <PetSticker kind="yin" variant={2} decorative />
@@ -25,6 +27,7 @@ export function App() {
   if (launcher.status === "error") {
     return (
       <main className="error-screen">
+        <div className="window-bar window-bar--overlay" data-tauri-drag-region><span className="window-bar__label">COLD<span>EM</span></span><WindowControls /></div>
         <div className="screen-graffiti" aria-hidden="true">SYSTEM // TOO WARM</div>
         <BrandMark />
         <div className="error-card">
