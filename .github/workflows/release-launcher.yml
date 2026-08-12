@@ -57,6 +57,21 @@ jobs:
       - name: Download the butler sidecar
         run: pnpm sidecar:fetch
 
+      - name: Download Discord Social SDK runtime
+        shell: pwsh
+        env:
+          DISCORD_SDK_URL: ${{ secrets.DISCORD_SOCIAL_SDK_WINDOWS_URL }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:DISCORD_SDK_URL)) {
+            throw "DISCORD_SOCIAL_SDK_WINDOWS_URL is not configured in repository Actions secrets"
+          }
+          $archive = Join-Path $env:RUNNER_TEMP "discord-social-sdk.zip"
+          Invoke-WebRequest -Uri $env:DISCORD_SDK_URL -OutFile $archive
+          Expand-Archive -LiteralPath $archive -DestinationPath (Join-Path $env:RUNNER_TEMP "discord-social-sdk") -Force
+          $root = Join-Path $env:RUNNER_TEMP "discord-social-sdk\discord_social_sdk"
+          Copy-Item (Join-Path $root "bin\release\discord_partner_sdk.dll") "src-tauri\vendor\discord\discord_partner_sdk.dll"
+          Copy-Item (Join-Path $root "bin\release\discord_krisp.dll") "src-tauri\vendor\discord\discord_krisp.dll"
+
       - name: Build and publish the signed installer
         uses: tauri-apps/tauri-action@v1
         env:

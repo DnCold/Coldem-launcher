@@ -52,6 +52,16 @@
       "icons/icon.ico"
     ],
     "externalBin": ["binaries/butler"],
+    "resources": {
+      "vendor/discord/discord_partner_sdk.dll": "discord/discord_partner_sdk.dll",
+      "vendor/discord/discord_krisp.dll": "discord/discord_krisp.dll",
+      "vendor/discord/License-Notices.txt": "discord/License-Notices.txt"
+    },
+    "windows": {
+      "nsis": {
+        "installerHooks": "windows/hooks.nsh"
+      }
+    },
     "shortDescription": "A focused launcher for DanCold games",
     "longDescription": "Browse, install, update, and launch DanCold games from public signed releases."
   }

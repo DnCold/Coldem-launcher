@@ -14,21 +14,23 @@ use tokio::{
 
 const MAX_BRIDGE_REQUEST: usize = 64 * 1024;
 
-#[derive(Default)]
 pub struct SocialService {
     active_session: Mutex<Option<SocialSession>>,
     game_bridges: Mutex<HashMap<String, u64>>,
+    native_snapshot: Arc<Mutex<NativeSnapshot>>,
+    #[cfg(target_os = "windows")]
+    native_runtime: Mutex<Option<crate::discord_native::NativeRuntime>>,
 }
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SocialSnapshot {
-    connection: &'static str,
+    connection: String,
     application_configured: bool,
     sdk_available: bool,
     friends: Vec<SocialFriend>,
     active_session: Option<SocialSession>,
-    message: Option<&'static str>,
+    message: Option<String>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -57,11 +59,19 @@ struct SocialSessionReport {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct SocialFriend {
-    id: String,
-    display_name: String,
-    group: &'static str,
-    status_text: String,
+pub(crate) struct SocialFriend {
+    pub(crate) id: String,
+    pub(crate) display_name: String,
+    pub(crate) group: &'static str,
+    pub(crate) status_text: String,
+    pub(crate) avatar_url: Option<String>,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct NativeSnapshot {
+    pub(crate) connection: String,
+    pub(crate) friends: Vec<SocialFriend>,
+    pub(crate) message: Option<String>,
 }
 
 pub struct GameBridgeLaunch {
@@ -70,19 +80,110 @@ pub struct GameBridgeLaunch {
 }
 
 impl SocialService {
+    pub fn new() -> Self {
+        Self {
+            active_session: Mutex::new(None),
+            game_bridges: Mutex::new(HashMap::new()),
+            native_snapshot: Arc::new(Mutex::new(NativeSnapshot {
+                connection: "disconnected".into(),
+                friends: Vec::new(),
+                message: Some("Connect Discord to see friends and activity invites.".into()),
+            })),
+            #[cfg(target_os = "windows")]
+            native_runtime: Mutex::new(None),
+        }
+    }
+
     fn snapshot(&self) -> SocialSnapshot {
         let application_configured = option_env!("COLDEM_DISCORD_APPLICATION_ID")
             .is_some_and(|value| !value.trim().is_empty());
+        let sdk_available = cfg!(target_os = "windows") && discord_runtime_present();
+        let native = self
+            .native_snapshot
+            .lock()
+            .ok()
+            .map(|value| value.clone())
+            .unwrap_or_default();
 
         SocialSnapshot {
-            connection: "setup_required",
+            connection: if !application_configured || !sdk_available {
+                "setup_required".into()
+            } else {
+                native.connection
+            },
             application_configured,
-            sdk_available: false,
-            friends: Vec::new(),
-            active_session: self.active_session.lock().ok().and_then(|value| value.clone()),
-            message: Some(
-                "Discord friends will appear here once the Coldem Social SDK build is enabled.",
-            ),
+            sdk_available,
+            friends: native.friends,
+            active_session: self
+                .active_session
+                .lock()
+                .ok()
+                .and_then(|value| value.clone()),
+            message: Some(if !application_configured {
+                "The Discord application ID is not configured for this build.".into()
+            } else if !sdk_available {
+                "Discord Social SDK runtime is not bundled with this build.".into()
+            } else {
+                native.message.unwrap_or_else(|| {
+                    "Connect Discord to see friends and activity invites.".into()
+                })
+            }),
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    fn start_native(self: &Arc<Self>, app: &AppHandle) -> Result<(), String> {
+        let application_id = option_env!("COLDEM_DISCORD_APPLICATION_ID")
+            .and_then(|value| value.parse::<u64>().ok())
+            .ok_or_else(|| {
+                "The Discord application ID is not configured for this build.".to_string()
+            })?;
+        let mut runtime = self
+            .native_runtime
+            .lock()
+            .map_err(|_| "Could not lock the Discord Social SDK runtime".to_string())?;
+        if runtime.is_some() {
+            return Ok(());
+        }
+        let weak = Arc::downgrade(self);
+        let app = app.clone();
+        let emit = Arc::new(move || {
+            if let Some(service) = weak.upgrade() {
+                service.emit_snapshot(&app);
+            }
+        });
+        *runtime = Some(crate::discord_native::NativeRuntime::start(
+            application_id,
+            self.native_snapshot.clone(),
+            emit,
+        )?);
+        Ok(())
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn start_native(self: &Arc<Self>, _app: &AppHandle) -> Result<(), String> {
+        Err("Discord Social SDK is currently available only in the Windows build.".into())
+    }
+
+    fn send_native_command(
+        &self,
+        command: crate::discord_native::NativeCommand,
+    ) -> Result<(), String> {
+        #[cfg(target_os = "windows")]
+        {
+            let runtime = self
+                .native_runtime
+                .lock()
+                .map_err(|_| "Could not lock the Discord Social SDK runtime".to_string())?;
+            runtime
+                .as_ref()
+                .ok_or_else(|| "Discord Social SDK is not running yet.".to_string())?
+                .send(command)
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let _ = command;
+            Err("Discord Social SDK is currently available only in the Windows build.".into())
         }
     }
 
@@ -118,7 +219,8 @@ impl SocialService {
                         let app = app.clone();
                         let token = server_token.clone();
                         tokio::spawn(async move {
-                            let _ = handle_bridge_request(stream, service, app, game_id, token).await;
+                            let _ =
+                                handle_bridge_request(stream, service, app, game_id, token).await;
                         });
                     }
                     Ok(Err(_)) => break,
@@ -152,7 +254,10 @@ impl SocialService {
             bridges.remove(token);
         }
         if let Ok(mut session) = self.active_session.lock() {
-            if session.as_ref().is_some_and(|value| value.game_id == game_id) {
+            if session
+                .as_ref()
+                .is_some_and(|value| value.game_id == game_id)
+            {
                 *session = None;
             }
         }
@@ -172,6 +277,22 @@ impl SocialService {
     }
 }
 
+#[cfg(target_os = "windows")]
+fn discord_runtime_present() -> bool {
+    std::env::current_exe()
+        .ok()
+        .and_then(|path| {
+            path.parent()
+                .map(|parent| parent.join("discord_partner_sdk.dll"))
+        })
+        .is_some_and(|path| path.exists())
+}
+
+#[cfg(not(target_os = "windows"))]
+fn discord_runtime_present() -> bool {
+    false
+}
+
 #[tauri::command]
 pub fn social_snapshot(state: tauri::State<'_, crate::AppState>) -> SocialSnapshot {
     state.social.snapshot()
@@ -179,6 +300,7 @@ pub fn social_snapshot(state: tauri::State<'_, crate::AppState>) -> SocialSnapsh
 
 #[tauri::command]
 pub fn connect_discord(
+    app: AppHandle,
     state: tauri::State<'_, crate::AppState>,
 ) -> Result<SocialSnapshot, String> {
     let snapshot = state.social.snapshot();
@@ -188,20 +310,42 @@ pub fn connect_discord(
     if !snapshot.sdk_available {
         return Err("The Discord Social SDK runtime is not bundled with this build.".into());
     }
+    state.social.start_native(&app)?;
+    state
+        .social
+        .send_native_command(crate::discord_native::NativeCommand::Connect)?;
     Ok(snapshot)
 }
 
 #[tauri::command]
 pub fn disconnect_discord(state: tauri::State<'_, crate::AppState>) -> SocialSnapshot {
+    let _ = state
+        .social
+        .send_native_command(crate::discord_native::NativeCommand::Disconnect);
     state.social.snapshot()
 }
 
 #[tauri::command]
 pub fn invite_discord_friend(
-    _friend_id: String,
-    _state: tauri::State<'_, crate::AppState>,
+    friend_id: String,
+    state: tauri::State<'_, crate::AppState>,
 ) -> Result<(), String> {
-    Err("Start a joinable EOS lobby before sending a Discord invite.".into())
+    let session = state
+        .social
+        .active_session
+        .lock()
+        .map_err(|_| "Could not lock the active EOS session".to_string())?
+        .clone()
+        .ok_or_else(|| "Start a joinable EOS lobby before sending a Discord invite.".to_string())?;
+    if !session.joinable {
+        return Err("The current EOS lobby is not joinable.".into());
+    }
+    state
+        .social
+        .send_native_command(crate::discord_native::NativeCommand::Invite {
+            friend_id,
+            content: format!("Join me in {}", session.game_title),
+        })
 }
 
 async fn handle_bridge_request(
@@ -224,7 +368,10 @@ async fn handle_bridge_request(
 
     if request_line == "DELETE /session HTTP/1.1" {
         if let Ok(mut session) = service.active_session.lock() {
-            if session.as_ref().is_some_and(|value| value.game_id == game_id) {
+            if session
+                .as_ref()
+                .is_some_and(|value| value.game_id == game_id)
+            {
                 *session = None;
             }
         }
@@ -313,7 +460,9 @@ fn header_value<'a>(headers: &'a str, name: &str) -> Option<&'a str> {
 }
 
 fn find_bytes(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    haystack.windows(needle.len()).position(|window| window == needle)
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
 }
 
 async fn write_http_response(stream: &mut TcpStream, status: u16, body: &str) {

@@ -505,10 +505,7 @@ impl DeliveryService {
             save_receipts(app, &receipts)?;
             Ok(child)
         })();
-        let operation_result = result
-            .as_ref()
-            .map(|_| ())
-            .map_err(|error| error.clone());
+        let operation_result = result.as_ref().map(|_| ()).map_err(|error| error.clone());
         self.finish_operation(app, "play", game_id, &operation_result);
         result
     }

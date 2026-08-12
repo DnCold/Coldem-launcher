@@ -1,6 +1,8 @@
 mod app_updates;
 mod commands;
 mod delivery;
+#[cfg(target_os = "windows")]
+mod discord_native;
 mod social;
 
 use app_updates::*;
@@ -8,6 +10,8 @@ use commands::*;
 use delivery::DeliveryService;
 use social::*;
 use std::sync::Arc;
+#[cfg(target_os = "windows")]
+use tauri::path::BaseDirectory;
 use tauri::Manager;
 use tokio::sync::Mutex;
 
@@ -21,7 +25,7 @@ impl Default for AppState {
     fn default() -> Self {
         Self {
             delivery: DeliveryService::default(),
-            social: Arc::new(SocialService::default()),
+            social: Arc::new(SocialService::new()),
             operation_lock: Mutex::new(()),
         }
     }
@@ -45,6 +49,11 @@ pub fn run() {
 
     builder
         .plugin(tauri_plugin_shell::init())
+        .setup(|app| {
+            #[cfg(target_os = "windows")]
+            ensure_discord_runtime(app.handle())?;
+            Ok(())
+        })
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             initialize_launcher,
@@ -71,4 +80,23 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running Coldem");
+}
+
+#[cfg(target_os = "windows")]
+fn ensure_discord_runtime(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    let executable_dir = std::env::current_exe()?
+        .parent()
+        .ok_or("Could not resolve the Coldem executable directory")?
+        .to_path_buf();
+    for filename in ["discord_partner_sdk.dll", "discord_krisp.dll"] {
+        let destination = executable_dir.join(filename);
+        if destination.exists() {
+            continue;
+        }
+        let resource = app
+            .path()
+            .resolve(format!("discord/{filename}"), BaseDirectory::Resource)?;
+        std::fs::copy(resource, destination)?;
+    }
+    Ok(())
 }
