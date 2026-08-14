@@ -1480,6 +1480,12 @@ h1, h2, h3, p { margin: 0; }
 .settings-toggle i { width: 8px; height: 8px; border-radius: 50%; background: #687080; }
 .settings-toggle.active { border-color: rgba(199,247,93,.56); background: rgba(83,111,26,.28); color: var(--acid); }
 .settings-toggle.active i { background: var(--acid); box-shadow: 0 0 9px var(--acid); }
+.settings-channel-select { display: inline-flex; align-items: center; min-width: 76px; padding: 5px 6px; border: 1px solid rgba(203,195,216,.22); border-radius: 5px 8px 5px 7px; background: rgba(8,10,17,.55); }
+.settings-channel-select select { width: 100%; border: 0; outline: 0; background: transparent; color: var(--acid); font: 900 7px/1 ui-monospace, monospace; letter-spacing: .06em; cursor: pointer; }
+.settings-channel-select select:disabled { opacity: .55; cursor: wait; }
+.settings-channel-select option { background: #171226; color: #e9e4ef; }
+.settings-dialog__error { grid-column: 1 / -1; margin: 8px 8px 0; color: #ff958d; font-size: 8px; line-height: 1.35; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .settings-dialog footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; border-top: 1px dashed rgba(201,180,223,.2); color: rgba(199,194,211,.66); font: 800 7px/1 ui-monospace, monospace; letter-spacing: .1em; }
 .settings-dialog footer span { display: inline-flex; align-items: center; gap: 5px; }
 .settings-dialog footer span i { width: 5px; height: 5px; border-radius: 50%; background: var(--acid); }
@@ -1516,6 +1522,7 @@ h1, h2, h3, p { margin: 0; }
   .coldem-status-strip__live { max-width: 48vw; }
   .settings-dialog__row { grid-template-columns: 25px minmax(0, 1fr); }
   .settings-toggle { grid-column: 2; justify-self: start; }
+  .settings-channel-select { grid-column: 2; justify-self: start; }
 }
 
 /* Critique pass 4: the right rail should look like live equipment, not a pile of secondary cards. */
@@ -1853,6 +1860,134 @@ h1, h2, h3, p { margin: 0; }
   .social-avatar { width: 25px; height: 25px; }
   .downloads-panel { margin-top: 9px; padding: 11px 10px; }
 }
+
+/* Visual critique pass: game art is the hero; the Runner is only a delivery accent. */
+.featured-hero__runner {
+  z-index: 0;
+  right: clamp(12px, 3.5vw, 54px);
+  bottom: 3%;
+  height: 54%;
+  max-width: 22%;
+  opacity: .32;
+  filter: drop-shadow(5px 7px 0 rgba(5,4,9,.48)) drop-shadow(0 0 19px rgba(163,69,239,.24));
+  mix-blend-mode: screen;
+}
+@media (max-width: 1120px) {
+  .featured-hero__runner { right: 2%; height: 47%; max-width: 19%; opacity: .24; }
+}
+@media (max-width: 800px) {
+  .featured-hero__runner { display: none; }
+}
+
+/* Critique cycle 03 — reduce panel-edge noise so the neon work has breathing room. */
+.app-shell::after { opacity: .08; }
+.sidebar, .main-view, .activity-rail { box-shadow: inset 0 1px rgba(255,255,255,.05), 0 16px 38px rgba(0,0,0,.24); }
+.main-view::after { opacity: .26; }
+
+/* Critique cycle 04 — make the brand and Runner ID read as one intentional lockup. */
+.sidebar__brand { padding-bottom: 29px; }
+.sidebar__brand::after { bottom: 15px; width: 112px; opacity: .72; }
+.runner-ident { margin-bottom: 11px; box-shadow: 2px 3px 0 rgba(27,18,42,.58), inset 0 1px rgba(255,255,255,.05); }
+
+/* Critique cycle 05 — clarify navigation states without increasing ornament. */
+.sidebar__nav button { color: #b2b6c7; }
+.sidebar__nav button svg { color: #c1a5db; }
+.sidebar__nav button.active svg { color: #fff; filter: drop-shadow(0 0 5px rgba(255,255,255,.22)); }
+.sidebar__nav button small { color: #a7a1b7; }
+.sidebar__nav button em { min-width: 18px; height: 18px; font-size: 8px; }
+
+/* Critique cycle 06 — keep fixed graffiti from crossing actionable navigation. */
+.street-fx__tag { opacity: .42; }
+.street-fx__stamp { opacity: .72; }
+
+/* Critique cycle 07 — give the topbar a calmer reading baseline. */
+.topbar { box-shadow: inset 0 -1px rgba(255,255,255,.035); }
+.topbar > div:first-child { min-width: 0; }
+.topbar__title-row h1 { white-space: nowrap; }
+.search-field { box-shadow: inset 0 1px rgba(255,255,255,.04); }
+
+/* Critique cycle 08 — make status information feel like one instrument panel. */
+.coldem-status-strip { min-height: 31px; padding-block: 6px; }
+.coldem-status-strip > span, .coldem-status-strip > b, .coldem-status-strip > em { line-height: 1.2; }
+
+/* Critique cycle 09 — preserve title contrast when cover art is unusually bright. */
+.featured-hero__wash { background: linear-gradient(90deg, rgba(7,8,15,.985) 0%, rgba(13,10,23,.84) 43%, rgba(9,10,17,.25) 84%), linear-gradient(0deg, rgba(9,10,16,.66), transparent 48%); }
+.featured-hero__copy > p { max-width: 410px; }
+
+/* Critique cycle 10 — make the Runner a color echo, not a second character poster. */
+.featured-hero__runner { right: clamp(15px, 4vw, 58px); bottom: 1%; opacity: .24; filter: drop-shadow(4px 6px 0 rgba(5,4,9,.38)) drop-shadow(0 0 15px rgba(163,69,239,.2)); }
+
+/* Critique cycle 11 — make the featured action unmistakable at idle and focus. */
+.featured-hero .hero-play-button { min-height: 48px; letter-spacing: .04em; }
+.featured-hero .hero-play-button:focus-visible { outline: 3px solid var(--acid); outline-offset: 4px; }
+.featured-hero__actions > span svg { color: var(--acid); }
+
+/* Critique cycle 12 — keep the collection heading close enough to feel connected to the hero. */
+.library-section { margin-top: 20px; }
+.section-heading { align-items: center; }
+.section-heading::after { bottom: 1px; }
+
+/* Critique cycle 13 — separate game metadata from cover art with a readable archive band. */
+.game-card__meta { background: linear-gradient(180deg, rgba(15,18,30,.92), rgba(9,12,21,.98)); }
+.game-card__archive { min-height: 19px; padding-top: 2px; border-top: 1px dashed rgba(175,136,207,.2); }
+.game-card__archive b { color: #b5a8c4; }
+
+/* Critique cycle 14 — keep pet stickers expressive without letting them cover titles or controls. */
+.game-card__sticker { right: -9px; bottom: -13px; width: 78px; opacity: .9; }
+.featured-hero__sticker { opacity: .94; }
+.pet-pair .pet-sticker { opacity: .92; }
+
+/* Critique cycle 15 — give Discord rows a clearer active/quiet rhythm. */
+.social-panel__heading { min-height: 24px; }
+.social-friend { border: 1px solid transparent; }
+.social-friend:hover { border-color: rgba(164,124,214,.2); background: rgba(255,255,255,.035); }
+.social-friend--playing { border-left-color: rgba(199,247,93,.62); }
+
+/* Critique cycle 16 — keep Downloads discoverable on short desktop windows. */
+@media (max-height: 800px) and (min-width: 801px) {
+  .social-group { margin-top: 6px; }
+  .social-group ul { gap: 1px; margin-top: 3px; }
+  .social-friend { min-height: 27px; padding-block: 2px; }
+  .social-avatar { width: 23px; height: 23px; }
+  .social-invite { width: 23px; height: 23px; }
+  .social-disconnect { display: none; }
+}
+
+/* Critique cycle 17 — make the patch bay read like a destination, not an overflow edge. */
+.downloads-panel { scroll-margin-top: 12px; }
+.downloads-panel .rail-heading { padding-bottom: 4px; border-bottom: 1px dashed rgba(190,93,255,.24); }
+.downloads-panel .rail-heading h2 { letter-spacing: .07em; }
+
+/* Critique cycle 18 — carry the same sticker-panel language into update/settings dialogs. */
+.dialog-backdrop { background: rgba(4,5,13,.78); }
+.dialog-graffiti { opacity: .84; }
+.dialog__header h2, .settings-dialog h2 { text-shadow: 3px 3px 0 rgba(48,20,68,.82); }
+.dialog .primary-button, .settings-dialog .primary-button { box-shadow: 3px 4px 0 rgba(37,17,53,.72); }
+.dialog .secondary-button, .settings-dialog .secondary-button { border-color: rgba(213,191,232,.35); color: #e3d9ec; }
+
+/* Critique cycle 19 — responsive layouts should lose decoration before they lose hierarchy. */
+@media (max-width: 800px) {
+  .topbar__title-row h1 { white-space: normal; }
+  .coldem-status-strip { min-height: 29px; }
+  .featured-hero__copy { padding-inline: 25px; }
+  .section-heading h2 { font-size: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand__mark--runner { filter: none; }
+  .featured-hero__runner { opacity: .18; }
+}
+
+/* Critique cycle 20 — final audit: every actionable surface gets the same focus language. */
+.sidebar__nav button:focus-visible,
+.search-field:focus-within,
+.topbar .icon-button:focus-visible,
+.game-page-link:focus-visible,
+.social-invite:focus-visible,
+.social-connect > button:focus-visible,
+.downloads-panel button:focus-visible,
+.settings-dialog button:focus-visible,
+.dialog button:focus-visible { outline: 2px solid var(--acid); outline-offset: 3px; }
+.error-toast, .library-alert, .catalog-warning { backdrop-filter: blur(5px); }
 
 @media (max-width: 1080px) {
   .runner-ident { margin-inline: 2px; }
