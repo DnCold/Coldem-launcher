@@ -1681,6 +1681,179 @@ h1, h2, h3, p { margin: 0; }
 :root[data-coldem-effects="off"] .login-runner,
 :root[data-coldem-effects="off"] .boot-runner { animation: none !important; }
 
+/* Runner-logo refresh + 20 compact visual critique passes.
+   The intent is a collectible night-arcade dashboard: loud at a glance, calm in use. */
+
+/* 01 — Give the new Runner head a deliberate, recognisable logo frame. */
+.brand__mark--runner {
+  isolation: isolate;
+  border: 1px solid rgba(229, 202, 255, .68);
+  background: radial-gradient(circle at 31% 28%, #7f34d5 0 11%, #170b29 51%, #080a13 100%);
+  box-shadow: 3px 3px 0 #5d2495, -2px -2px 0 rgba(199, 247, 93, .7), 0 0 18px rgba(153, 62, 235, .26);
+}
+.brand__mark--runner::after {
+  content: "";
+  display: block;
+  position: absolute;
+  z-index: 2;
+  inset: 4px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 2px 7px 3px 6px;
+  background: linear-gradient(115deg, transparent 0 44%, rgba(199,247,93,.14) 45% 47%, transparent 48% 100%);
+  pointer-events: none;
+}
+.brand__mark--runner img {
+  position: relative;
+  z-index: 1;
+  width: 132%;
+  height: 132%;
+  transform: translate(1%, 4%);
+  object-position: center;
+}
+
+/* 02 — Make the wordmark feel like part of a sticker, not a separate font sample. */
+.brand__word { position: relative; color: #f4eff8; }
+.brand__word::after { content: "//"; margin-left: 5px; color: var(--acid); font: 900 .46em/1 ui-monospace, monospace; letter-spacing: .03em; vertical-align: middle; }
+
+/* 03 — Preserve a clean silhouette around the logo in dense sidebar space. */
+.sidebar__brand { padding-right: 5px; }
+.sidebar .brand { align-items: flex-start; }
+.sidebar .brand__mark--runner { flex: 0 0 auto; }
+
+/* 04 — Turn the courier badge into a small piece of equipment rather than duplicate decoration. */
+.runner-ident { border-color: rgba(199,247,93,.34); background: linear-gradient(105deg, rgba(72, 28, 104, .66), rgba(8, 13, 23, .9)); }
+.runner-ident::before { content: "ACTIVE"; position: absolute; top: 4px; right: 23px; color: rgba(199,247,93,.65); font: 900 5px/1 ui-monospace, monospace; letter-spacing: .12em; }
+.runner-ident em { display: grid; place-items: center; width: 19px; height: 19px; margin-left: auto; border: 1px solid rgba(199,247,93,.48); border-radius: 50%; color: var(--acid); font: 900 7px/1 ui-monospace, monospace; font-style: normal; box-shadow: inset 0 0 9px rgba(199,247,93,.12); }
+
+/* 05 — Establish a visible current-location signal in the header. */
+.topbar__title-row { display: flex; align-items: center; gap: 10px; }
+.topbar__runner-signal { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; padding: 4px 6px; border: 1px solid rgba(199,247,93,.24); border-radius: 3px 7px 4px 6px; background: rgba(31, 47, 12, .24); color: #d7eea1; font: 900 6px/1 ui-monospace, monospace; letter-spacing: .1em; transform: rotate(.6deg); }
+.topbar__runner-signal i { width: 5px; height: 5px; border-radius: 50%; background: var(--acid); box-shadow: 0 0 9px var(--acid); }
+
+/* 06 — Let the system strip carry state without becoming another visual wall. */
+.coldem-status-strip { border-top: 1px solid rgba(255,255,255,.035); border-bottom: 1px solid rgba(199,247,93,.12); background: linear-gradient(90deg, rgba(54,27,81,.38), rgba(7,12,20,.75) 42%, rgba(16,45,32,.18)); }
+.coldem-status-strip b { letter-spacing: .08em; }
+.coldem-status-strip__updates { text-shadow: 0 0 11px rgba(199,247,93,.3); }
+
+/* 07 — Give the featured card a stronger stage edge and a calmer copy zone. */
+.featured-hero { border-color: rgba(181, 112, 247, .48); background: #0a0d16; }
+.featured-hero::before { background: radial-gradient(circle at 78% 42%, rgba(147,63,224,.35), transparent 28%), linear-gradient(130deg, #261339, #0b1d2a); }
+.featured-hero__copy { width: min(68%, 640px); padding-right: 22px; }
+.featured-hero__copy > p { color: #d0cad9; text-shadow: 0 1px 4px rgba(0,0,0,.82); }
+
+/* 08 — Anchor the Runner to the card and give the silhouette a subtle delivery glow. */
+.featured-hero__runner { right: clamp(10px, 2.2vw, 38px); height: 101%; filter: drop-shadow(10px 14px 0 rgba(5,4,9,.6)) drop-shadow(0 0 26px rgba(163,69,239,.34)); }
+.featured-hero__runner::selection { background: transparent; }
+
+/* 09 — Increase call-to-action confidence and retain progress-state readability. */
+.hero-play-button { min-width: 146px; border: 1px solid rgba(229,205,255,.78); box-shadow: 4px 4px 0 rgba(35,11,56,.75), inset 0 1px rgba(255,255,255,.18); }
+.hero-play-button:hover:not(:disabled) { box-shadow: 6px 6px 0 rgba(35,11,56,.78), 0 0 18px rgba(188,91,245,.26); }
+.featured-hero__actions > span { color: #d2ccdc; }
+
+/* 10 — Use rail labels to make cards scan quickly at a glance. */
+.section-heading > span { min-width: 58px; text-align: center; color: #e6ddee; }
+.game-card__archive { color: #c6bbd2; }
+.game-card__archive i { color: var(--acid); }
+.game-card__title-row p { color: #beb7c8; }
+
+/* 11 — Make each game-card action read as a tactile arcade control. */
+.game-action { min-height: 36px; border: 1px solid rgba(210,192,232,.26); box-shadow: 2px 3px 0 rgba(31,20,45,.72); }
+.game-action:hover:not(:disabled) { filter: brightness(1.12); box-shadow: 4px 5px 0 rgba(31,20,45,.75), 0 0 12px rgba(184,89,245,.16); }
+.game-card--installed .game-action { border-color: rgba(199,247,93,.48); }
+.game-card--update_available .game-action { border-color: rgba(255,180,99,.55); }
+
+/* 12 — Separate the social card from downloads through hierarchy, not more borders. */
+.social-panel { box-shadow: 3px 4px 0 rgba(34,23,51,.7), inset 0 1px rgba(255,255,255,.04); }
+.social-panel__heading { margin-bottom: 7px; }
+.social-group > p { color: #bba4d6; letter-spacing: .13em; }
+
+/* 13 — Make friend activity feel alive while keeping unavailable actions obviously quiet. */
+.social-avatar { box-shadow: 2px 2px 0 rgba(77,42,110,.7); }
+.social-friend--playing { background: linear-gradient(90deg, rgba(75,90,26,.18), transparent); }
+.social-invite:disabled { opacity: .34; filter: grayscale(.45); }
+
+/* 14 — Give the patch bay an actual resting state. */
+.downloads-panel { border-color: rgba(174,121,213,.32); }
+.downloads-empty strong { color: var(--acid); letter-spacing: .05em; }
+.downloads-panel__telemetry { background: rgba(5,9,15,.26); }
+
+/* 15 — Balance pet stickers as accents so the utility panels remain primary. */
+.pet-pair { min-height: 82px; margin-top: 1px; }
+.pet-pair .pet-sticker { filter: drop-shadow(3px 4px 0 rgba(0,0,0,.52)) saturate(1.04); }
+.sidebar-mascot__note { border: 1px solid rgba(255,255,255,.32); }
+
+/* 16 — Add depth to the central viewport without increasing text noise. */
+.content-scroll { scrollbar-color: rgba(184,88,245,.62) rgba(11,15,24,.55); scrollbar-width: thin; }
+.content-scroll::-webkit-scrollbar { width: 9px; }
+.content-scroll::-webkit-scrollbar-track { background: rgba(11,15,24,.58); }
+.content-scroll::-webkit-scrollbar-thumb { border: 2px solid #0b0f18; border-radius: 9px; background: linear-gradient(#b65cf5, #63309c); }
+
+/* 17 — Keep transient dialogs in the same hand-made visual language. */
+.dialog, .settings-dialog { border-color: rgba(196,117,255,.5); box-shadow: 8px 10px 0 rgba(25,13,38,.76), 0 0 0 1px rgba(199,247,93,.08); }
+.dialog__footer, .settings-dialog footer { background: linear-gradient(90deg, rgba(60,27,88,.23), rgba(8,11,19,.35)); }
+
+/* 18 — Protect the tiny archival type from the texture underneath it. */
+.downloads-panel__stamp, .downloads-panel__telemetry, .runner-ident small, .sidebar-signal, .coldem-status-strip { text-shadow: 0 1px 2px rgba(0,0,0,.9); }
+.featured-hero__intel { background: rgba(5,8,14,.34); backdrop-filter: blur(2px); }
+
+/* 19 — Narrow layouts should shed ornament before they sacrifice game controls. */
+@media (max-width: 1120px) {
+  .topbar__runner-signal { display: none; }
+  .featured-hero__copy { width: 73%; }
+  .featured-hero__runner { right: -2%; opacity: .77; }
+}
+@media (max-width: 800px) {
+  .brand__word::after, .runner-ident::before, .runner-ident em { display: none; }
+  .topbar__title-row { display: block; }
+  .featured-hero__copy { width: 100%; }
+}
+
+/* 20 — Finish with motion that provides atmosphere but never obscures an action. */
+@media (prefers-reduced-motion: no-preference) {
+  .brand__mark--runner { animation: runner-logo-breathe 4.8s ease-in-out infinite; }
+  .topbar__runner-signal i { animation: coldem-pulse 1.9s ease-in-out infinite; }
+}
+@keyframes runner-logo-breathe { 50% { filter: brightness(1.08) saturate(1.08); transform: rotate(-3deg) translateY(-1px); } }
+:root[data-coldem-effects="off"] .brand__mark--runner,
+:root[data-coldem-effects="off"] .topbar__runner-signal i { animation: none !important; }
+
+/* Visual-review refinements — readability and information order. */
+.runner-ident { min-height: 47px; margin-top: -7px; padding-block: 6px; }
+.runner-ident img { width: 41px; height: 41px; }
+.runner-ident b { font-size: 10px; }
+.runner-ident small { font-size: 7px; line-height: 1.15; }
+.runner-ident em { width: 21px; height: 21px; font-size: 8px; }
+
+.sidebar-signal { font-size: 8px; }
+.sidebar-signal b { font-size: 8px; }
+.crew-dossier > p { font-size: 7px; }
+.crew-dossier b { font-size: 9px; }
+.crew-dossier small { font-size: 8px; }
+.crew-dossier em { font-size: 7px; }
+
+.social-group > p { font-size: 7px; }
+.social-session strong, .social-friend__identity strong { font-size: 9px; }
+.social-session small, .social-friend__identity small { font-size: 7px; line-height: 1.2; }
+.social-disconnect, .social-feedback { font-size: 7px; }
+.downloads-panel__stamp { font-size: 8px; }
+.downloads-panel__telemetry { font-size: 7px; }
+.game-card__archive { font-size: 8px; }
+.game-card__archive i, .game-card__archive b { font-size: 7px; }
+
+@media (max-height: 800px) and (min-width: 801px) {
+  .activity-rail { padding: 11px; }
+  .pet-pair { min-height: 64px; height: 64px; }
+  .pet-pair .pet-sticker { width: 70px; }
+  .crew-dossier { margin-top: 5px; padding: 6px 7px; }
+  .crew-dossier > div { min-height: 18px; }
+  .crew-dossier .pet-sticker { width: 21px; }
+  .crew-dossier em { display: none; }
+  .social-panel { margin-top: 6px; padding: 10px 9px 9px; }
+  .social-friend { min-height: 31px; }
+  .social-avatar { width: 25px; height: 25px; }
+  .downloads-panel { margin-top: 9px; padding: 11px 10px; }
+}
+
 @media (max-width: 1080px) {
   .runner-ident { margin-inline: 2px; }
   .runner-ident small { display: none; }

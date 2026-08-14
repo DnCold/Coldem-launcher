@@ -207,6 +207,7 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
         <div className="runner-ident" aria-label="The Runner, Coldem game courier">
           <img src={runnerHead} alt="" />
           <span><b>RUNNER</b><small>COURIER // 001</small></span>
+          <em>01</em>
         </div>
 
         <nav className="sidebar__nav" aria-label="Main navigation">
@@ -249,7 +250,7 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
         <header className="topbar">
           <div>
             <p className="eyebrow">WELCOME BACK</p>
-            <h1>Ready to play?</h1>
+            <div className="topbar__title-row"><h1>Ready to play?</h1><span className="topbar__runner-signal"><i /> RUNNER ONLINE</span></div>
           </div>
           <div className="topbar__tools">
             <label className="search-field">
