@@ -10,12 +10,14 @@ import type {
   LibrarySnapshot,
   OperationEvent,
   Profile,
+  ReleaseChannel,
   Upload
 } from "../types/launcher";
 import { demoLauncherClient } from "./demoLauncherClient";
 
 export interface LauncherClient {
-  initialize(): Promise<BootstrapResult>;
+  initialize(channel: ReleaseChannel): Promise<BootstrapResult>;
+  setChannel(channel: ReleaseChannel): Promise<void>;
   beginLogin(): Promise<Profile | null>;
   cancelLogin(): Promise<void>;
   restoreProfile(profileId: number): Promise<Profile>;
@@ -39,7 +41,8 @@ export interface LauncherClient {
 }
 
 const tauriLauncherClient: LauncherClient = {
-  initialize: () => invoke("initialize_launcher"),
+  initialize: (channel) => invoke("initialize_launcher", { channel }),
+  setChannel: (channel) => invoke("set_release_channel", { channel }),
   beginLogin: () => invoke<Profile>("enter_library"),
   cancelLogin: () => invoke("cancel_entry"),
   restoreProfile: (profileId) => invoke("use_local_profile", { profileId }),

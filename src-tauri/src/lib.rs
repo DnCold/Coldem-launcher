@@ -64,6 +64,7 @@ pub fn run() {
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             initialize_launcher,
+            set_release_channel,
             launcher_update_status,
             check_launcher_update,
             install_launcher_update,

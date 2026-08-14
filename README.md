@@ -102,6 +102,12 @@ points to an immutable tag, while the launcher reads the moving catalog URL:
 https://github.com/DnCold/Coldem-delivery/releases/latest/download/coldem-manifest.json
 ```
 
+The launcher defaults to **Stable**. Players can switch to **Test** in
+Settings; it selects the newest GitHub prerelease whose tag starts with
+`delivery-test-` and loads its `coldem-manifest.json`. Test catalogs are kept in
+their own local cache, so switching channels never serves a Stable catalog by
+mistake. A custom Test catalog can be supplied with `COLDEM_TEST_MANIFEST_URL`.
+
 GitHub accepts each `.pwr`, `.pwr.sig`, cover, and manifest as a separate
 asset. The publisher rejects an individual asset at or above 2 GiB. If a full
 Wharf package reaches that threshold, move game artifacts to an object-storage
