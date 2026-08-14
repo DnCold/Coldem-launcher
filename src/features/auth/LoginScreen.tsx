@@ -8,6 +8,7 @@ import {
 import { BrandMark } from "../../components/BrandMark";
 import { PetSticker } from "../../components/PetSticker";
 import { WindowControls } from "../../components/WindowControls";
+import runnerWelcome from "../../assets/runner-welcome.png";
 
 interface LoginScreenProps {
   onLogin: () => Promise<void>;
@@ -46,6 +47,10 @@ export function LoginScreen({
           <p>Small strange worlds, delivered directly by DanCold.</p>
           <div className="login-art__scribble">PLAY // BUILD // REPEAT</div>
         </div>
+        <figure className="login-runner">
+          <img src={runnerWelcome} alt="" />
+          <figcaption>THE RUNNER // YOUR GAME COURIER</figcaption>
+        </figure>
         <div className="login-pets">
           <PetSticker kind="yin" variant={2} decorative />
           <PetSticker kind="yang" variant={3} decorative />

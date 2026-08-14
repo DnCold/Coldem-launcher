@@ -26,6 +26,8 @@ import { useSocial } from "../../hooks/useSocial";
 import type { useLauncher } from "../../hooks/useLauncher";
 import type { GameRecord, InstallOptions, Upload } from "../../types/launcher";
 import dancoldLogo from "../../assets/dancold-logo.png";
+import runnerActive from "../../assets/runner-active.png";
+import runnerHead from "../../assets/runner-head.png";
 import { GameCard } from "./GameCard";
 import { InstallDialog } from "./InstallDialog";
 import { applySavedVisualPreferences, SettingsDialog } from "./SettingsDialog";
@@ -202,6 +204,11 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
           </div>
         </div>
 
+        <div className="runner-ident" aria-label="The Runner, Coldem game courier">
+          <img src={runnerHead} alt="" />
+          <span><b>RUNNER</b><small>COURIER // 001</small></span>
+        </div>
+
         <nav className="sidebar__nav" aria-label="Main navigation">
           <p>Control deck</p>
           <button type="button" className={filter === "home" ? "active" : ""} onClick={() => setFilter("home")}>
@@ -288,6 +295,7 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
             <section className={`featured-hero cover-fallback--${featuredRecord.id % 8}`}>
               {featuredRecord.cover && <img className="featured-hero__image" src={featuredRecord.cover} alt="" />}
               <div className="featured-hero__wash" />
+              <img className="featured-hero__runner" src={runnerActive} alt="" aria-hidden="true" />
               <div className="featured-hero__copy">
                 <span className={`feature-tag ${isFeaturedPlaying ? "feature-tag--live" : ""}`}>
                   {isFeaturedPlaying ? <><i /> On air</> : <><Sparkles size={13} /> Featured</>}
@@ -306,7 +314,7 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
                   <span>BUILD // {featuredUpdate ? "UPDATE READY" : "CURRENT"}</span>
                 </div>
                 <div className="featured-hero__tape" aria-hidden="true">
-                  <span>{isFeaturedPlaying ? "LIVE SIGNAL DETECTED" : "PRESS PLAY WHEN READY"}</span>
+                  <span>{isFeaturedPlaying ? "LIVE SIGNAL DETECTED" : "THE RUNNER BROUGHT THIS DROP"}</span>
                   <b>/// DROP 001 ///</b>
                 </div>
               </div>

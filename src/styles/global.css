@@ -1584,3 +1584,113 @@ h1, h2, h3, p { margin: 0; }
   .featured-hero__serial { right: 14px; }
   .game-card__archive { font-size: 7px; }
 }
+
+/* The Runner is Coldem's courier across the site and desktop library. */
+.runner-ident {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: -10px 7px 12px;
+  padding: 5px 7px 5px 5px;
+  overflow: hidden;
+  border: 1px dashed rgba(190, 93, 255, .42);
+  border-radius: 5px 9px 6px 10px;
+  background: linear-gradient(105deg, rgba(68, 28, 103, .5), rgba(11, 15, 27, .76));
+  box-shadow: 3px 3px 0 rgba(27, 18, 42, .48);
+  color: #e8e1ef;
+  transform: rotate(-.65deg);
+}
+.runner-ident img {
+  width: 39px;
+  height: 39px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .38));
+}
+.runner-ident span { display: grid; gap: 3px; min-width: 0; }
+.runner-ident b { color: var(--acid); font: 900 9px/1 Impact, "Arial Narrow", sans-serif; letter-spacing: .11em; }
+.runner-ident small { color: #c5bdd1; font: 800 6px/1 ui-monospace, monospace; letter-spacing: .09em; }
+
+.featured-hero__runner {
+  position: absolute;
+  z-index: 1;
+  right: clamp(15px, 2.8vw, 46px);
+  bottom: 0;
+  height: 100%;
+  max-width: 39%;
+  pointer-events: none;
+  filter: drop-shadow(9px 12px 0 rgba(6, 5, 10, .5)) drop-shadow(0 0 20px rgba(144, 57, 218, .24));
+  transform: rotate(-2.2deg);
+  transform-origin: 50% 100%;
+}
+
+.login-runner {
+  position: absolute;
+  z-index: 2;
+  right: -7%;
+  bottom: -19%;
+  height: 102%;
+  margin: 0;
+  pointer-events: none;
+  filter: drop-shadow(13px 16px 0 rgba(5, 5, 9, .52)) drop-shadow(0 0 24px rgba(151, 62, 224, .26));
+  transform: rotate(-2.2deg);
+  transform-origin: 50% 100%;
+}
+.login-runner img { display: block; width: auto; height: 100%; object-fit: contain; }
+.login-runner figcaption {
+  position: absolute;
+  right: 17%;
+  bottom: 25%;
+  padding: 5px 7px;
+  border: 1px solid rgba(199, 247, 93, .38);
+  background: rgba(9, 12, 20, .82);
+  color: var(--acid);
+  font: 900 6px/1 ui-monospace, monospace;
+  letter-spacing: .1em;
+  white-space: nowrap;
+  transform: rotate(2.5deg);
+}
+
+.boot-runner {
+  position: absolute;
+  z-index: 1;
+  right: clamp(26px, 9vw, 150px);
+  bottom: -104px;
+  height: min(62vh, 500px);
+  pointer-events: none;
+  filter: drop-shadow(12px 17px 0 rgba(4, 5, 10, .56)) drop-shadow(0 0 26px rgba(141, 52, 217, .22));
+  opacity: .86;
+  transform: rotate(-3deg);
+  transform-origin: 50% 100%;
+}
+.boot-screen .brand,
+.boot-screen .pet-sticker,
+.boot-screen .spin,
+.boot-screen > p { position: relative; z-index: 2; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .featured-hero__runner { animation: runner-delivery 6.4s ease-in-out infinite; }
+  .login-runner { animation: runner-welcome 7.2s ease-in-out infinite; }
+  .boot-runner { animation: runner-boot 5.5s ease-in-out infinite; }
+}
+@keyframes runner-delivery { 50% { transform: translate(-5px, -8px) rotate(-.7deg); } }
+@keyframes runner-welcome { 50% { transform: translate(-8px, -10px) rotate(.2deg); } }
+@keyframes runner-boot { 50% { transform: translateY(-9px) rotate(-1deg); } }
+
+:root[data-coldem-effects="off"] .featured-hero__runner,
+:root[data-coldem-effects="off"] .login-runner,
+:root[data-coldem-effects="off"] .boot-runner { animation: none !important; }
+
+@media (max-width: 1080px) {
+  .runner-ident { margin-inline: 2px; }
+  .runner-ident small { display: none; }
+  .featured-hero__runner { right: -1%; opacity: .76; }
+  .login-runner { right: -18%; opacity: .72; }
+}
+@media (max-width: 800px) {
+  .runner-ident { display: none; }
+  .featured-hero__runner { display: none; }
+  .login-runner { right: -27%; height: 88%; opacity: .52; }
+  .login-runner figcaption { display: none; }
+  .boot-runner { right: -40px; bottom: -86px; height: min(54vh, 390px); opacity: .48; }
+}
