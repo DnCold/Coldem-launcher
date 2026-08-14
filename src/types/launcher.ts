@@ -92,11 +92,14 @@ export interface LibrarySnapshot {
   warning?: string;
 }
 
+export type ReleaseChannel = "stable" | "test";
+
 export interface BootstrapResult {
   butlerVersion: string;
   profiles: Profile[];
   catalogGameCount: number;
   catalogRestricted: boolean;
+  channel: ReleaseChannel;
 }
 
 export interface InstallOptions {

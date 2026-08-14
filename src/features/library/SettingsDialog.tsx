@@ -1,8 +1,11 @@
-import { Eye, Palette, X } from "lucide-react";
+import { Eye, GitBranch, Palette, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import type { ReleaseChannel } from "../../types/launcher";
 
 interface SettingsDialogProps {
   onClose: () => void;
+  channel: ReleaseChannel;
+  onChannelChange: (channel: ReleaseChannel) => Promise<void>;
 }
 
 const readSetting = (key: string, fallback: boolean) => {
@@ -52,12 +55,51 @@ function ToggleRow({
   );
 }
 
-export function SettingsDialog({ onClose }: SettingsDialogProps) {
+function ChannelRow({
+  channel,
+  busy,
+  onChange
+}: {
+  channel: ReleaseChannel;
+  busy: boolean;
+  onChange: (channel: ReleaseChannel) => void;
+}) {
+  return (
+    <div className="settings-dialog__row settings-dialog__row--channel">
+      <span className="settings-dialog__row-icon"><GitBranch size={17} /></span>
+      <div><strong>Release channel</strong><small>{channel === "stable" ? "Production builds and public updates." : "Beta builds from the latest Test prerelease."}</small></div>
+      <label className="settings-channel-select">
+        <span className="sr-only">Release channel</span>
+        <select value={channel} onChange={(event) => onChange(event.target.value as ReleaseChannel)} disabled={busy}>
+          <option value="stable">STABLE</option>
+          <option value="test">TEST</option>
+        </select>
+      </label>
+    </div>
+  );
+}
+
+export function SettingsDialog({ onClose, channel, onChannelChange }: SettingsDialogProps) {
   const [clarity, setClarity] = useState(() => readSetting("coldem-clarity", false));
   const [effects, setEffects] = useState(() => readSetting("coldem-effects", true));
+  const [channelBusy, setChannelBusy] = useState(false);
+  const [channelError, setChannelError] = useState<string | null>(null);
 
   useEffect(() => applySetting("coldem-clarity", clarity), [clarity]);
   useEffect(() => applySetting("coldem-effects", effects), [effects]);
+
+  const changeChannel = async (nextChannel: ReleaseChannel) => {
+    if (nextChannel === channel || channelBusy) return;
+    setChannelBusy(true);
+    setChannelError(null);
+    try {
+      await onChannelChange(nextChannel);
+    } catch (reason) {
+      setChannelError(String(reason));
+    } finally {
+      setChannelBusy(false);
+    }
+  };
 
   return (
     <div className="dialog-backdrop settings-backdrop" role="presentation">
@@ -66,10 +108,12 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
           <div><p>CONTROL DECK // LOCAL PREFS</p><h2 id="settings-title">Tune Coldem</h2></div>
           <button type="button" onClick={onClose} aria-label="Close settings"><X size={18} /></button>
         </header>
-        <p className="settings-dialog__intro">These controls stay on this computer and only change how the launcher looks.</p>
+        <p className="settings-dialog__intro">Choose which Coldem release stream to browse. The selection stays on this computer.</p>
         <div className="settings-dialog__list">
+          <ChannelRow channel={channel} busy={channelBusy} onChange={(nextChannel) => void changeChannel(nextChannel)} />
           <ToggleRow icon={<Eye size={17} />} title="High-clarity type" detail="Boost small labels and supporting text." checked={clarity} onChange={() => setClarity((value) => !value)} />
           <ToggleRow icon={<Palette size={17} />} title="Street effects" detail="Keep the graffiti, glow, grain, and motion alive." checked={effects} onChange={() => setEffects((value) => !value)} />
+          {channelError && <p className="settings-dialog__error" role="alert">{channelError}</p>}
         </div>
         <footer><span><i /> SETTINGS SAVED LOCALLY</span><b>DNCLD // 01</b></footer>
       </section>

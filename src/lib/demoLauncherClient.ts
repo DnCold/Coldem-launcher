@@ -7,6 +7,7 @@ import type {
   GameRecord,
   OperationEvent,
   Profile,
+  ReleaseChannel,
   Upload
 } from "../types/launcher";
 
@@ -100,12 +101,14 @@ const simulatePlay = async (gameId: number) => {
 };
 
 export const demoLauncherClient: LauncherClient = {
-  initialize: async () => ({
+  initialize: async (channel: ReleaseChannel) => ({
     butlerVersion: "demo",
     profiles: showLoginPreview ? [] : [profile],
     catalogGameCount: 1,
-    catalogRestricted: true
+    catalogRestricted: true,
+    channel
   }),
+  setChannel: async () => undefined,
   beginLogin: async () => {
     await new Promise((resolve) => window.setTimeout(resolve, 350));
     return profile;

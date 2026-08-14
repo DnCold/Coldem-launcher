@@ -111,6 +111,7 @@ pub struct DeliveryService {
     client: Client,
     catalog: RwLock<Option<CatalogManifest>>,
     warning: RwLock<Option<String>>,
+    channel: RwLock<String>,
 }
 
 impl Default for DeliveryService {
@@ -124,11 +125,28 @@ impl Default for DeliveryService {
                 .expect("valid HTTP client"),
             catalog: RwLock::new(None),
             warning: RwLock::new(None),
+            channel: RwLock::new("stable".into()),
         }
     }
 }
 
 impl DeliveryService {
+    pub async fn set_channel(&self, channel: &str) -> Result<(), String> {
+        validate_release_channel(channel)?;
+        let channel = channel.trim().to_ascii_lowercase();
+        let mut current = self.channel.write().await;
+        if *current != channel {
+            *current = channel;
+            *self.catalog.write().await = None;
+            *self.warning.write().await = None;
+        }
+        Ok(())
+    }
+
+    pub async fn channel(&self) -> String {
+        self.channel.read().await.clone()
+    }
+
     pub async fn butler_version(&self, app: &AppHandle) -> Result<String, String> {
         let output = app
             .shell()
@@ -155,7 +173,17 @@ impl DeliveryService {
             }
         }
 
-        let Some(url) = manifest_url() else {
+        let channel = self.channel().await;
+        let Some(url) = self.manifest_url(&channel).await? else {
+            if channel == "test" {
+                let catalog = empty_catalog();
+                *self.catalog.write().await = Some(catalog.clone());
+                *self.warning.write().await = Some(
+                    "No Test release has been published yet. Stable remains available in Settings."
+                        .into(),
+                );
+                return Ok(catalog);
+            }
             let catalog = parse_and_validate(EMBEDDED_CATALOG.as_bytes())?;
             *self.catalog.write().await = Some(catalog.clone());
             *self.warning.write().await = Some(
@@ -168,13 +196,13 @@ impl DeliveryService {
         match self.fetch_verified_catalog(&url).await {
             Ok((bytes, signature, security_warning)) => {
                 let catalog = parse_and_validate(&bytes)?;
-                save_catalog_cache(app, &bytes, signature.as_deref())?;
+                save_catalog_cache(app, &channel, &bytes, signature.as_deref())?;
                 *self.catalog.write().await = Some(catalog.clone());
                 *self.warning.write().await = security_warning;
                 Ok(catalog)
             }
             Err(network_error) => {
-                if let Ok(bytes) = read_catalog_cache(app) {
+                if let Ok(bytes) = read_catalog_cache(app, &channel) {
                     if let Ok(catalog) = parse_and_validate(&bytes) {
                         *self.catalog.write().await = Some(catalog.clone());
                         *self.warning.write().await = Some(format!(
@@ -192,6 +220,51 @@ impl DeliveryService {
 
     pub async fn warning(&self) -> Option<String> {
         self.warning.read().await.clone()
+    }
+
+    async fn manifest_url(&self, channel: &str) -> Result<Option<String>, String> {
+        if channel == "stable" {
+            return Ok(stable_manifest_url());
+        }
+
+        if let Some(url) = option_env!("COLDEM_TEST_MANIFEST_URL")
+            .map(str::to_owned)
+            .or_else(|| std::env::var("COLDEM_TEST_MANIFEST_URL").ok())
+            .filter(|value| !value.trim().is_empty())
+        {
+            return Ok(Some(url));
+        }
+
+        let Some(repository) = github_repository() else {
+            return Ok(None);
+        };
+        let url = format!("https://api.github.com/repos/{repository}/releases?per_page=100");
+        let releases = self
+            .client
+            .get(url)
+            .send()
+            .await
+            .map_err(|error| format!("Could not list Test releases: {error}"))?
+            .error_for_status()
+            .map_err(|error| format!("GitHub could not list Test releases: {error}"))?
+            .json::<Vec<GithubRelease>>()
+            .await
+            .map_err(|error| format!("GitHub returned an invalid Test release list: {error}"))?;
+        Ok(releases
+            .into_iter()
+            .filter(|release| {
+                release.prerelease
+                    && !release.draft
+                    && release.tag_name.starts_with("delivery-test-")
+            })
+            .max_by_key(|release| release.published_at.clone().unwrap_or_default())
+            .and_then(|release| {
+                release
+                    .assets
+                    .into_iter()
+                    .find(|asset| asset.name == "coldem-manifest.json")
+                    .map(|asset| asset.browser_download_url)
+            }))
     }
 
     pub async fn library(&self, app: &AppHandle, fresh: bool) -> Result<Value, String> {
@@ -231,11 +304,7 @@ impl DeliveryService {
             })
             .collect::<Vec<_>>();
 
-        let warning = if manifest_url().is_none() {
-            None
-        } else {
-            self.warning().await
-        };
+        let warning = self.warning().await;
         Ok(json!({
             "records": records,
             "caves": caves,
@@ -832,19 +901,59 @@ pub fn player_profile() -> Value {
     })
 }
 
-fn manifest_url() -> Option<String> {
+#[derive(Deserialize)]
+struct GithubRelease {
+    tag_name: String,
+    prerelease: bool,
+    draft: bool,
+    #[serde(default)]
+    published_at: Option<String>,
+    assets: Vec<GithubAsset>,
+}
+
+#[derive(Deserialize)]
+struct GithubAsset {
+    name: String,
+    browser_download_url: String,
+}
+
+fn github_repository() -> Option<String> {
+    option_env!("COLDEM_GITHUB_REPOSITORY")
+        .map(str::to_owned)
+        .or_else(|| std::env::var("COLDEM_GITHUB_REPOSITORY").ok())
+        .filter(|value| !value.trim().is_empty())
+        .or_else(|| Some(DEFAULT_GITHUB_REPOSITORY.to_owned()))
+}
+
+fn stable_manifest_url() -> Option<String> {
     option_env!("COLDEM_MANIFEST_URL")
         .map(str::to_owned)
         .or_else(|| std::env::var("COLDEM_MANIFEST_URL").ok())
         .or_else(|| {
-            let repository = option_env!("COLDEM_GITHUB_REPOSITORY")
-                .map(str::to_owned)
-                .or_else(|| std::env::var("COLDEM_GITHUB_REPOSITORY").ok())
-                .unwrap_or_else(|| DEFAULT_GITHUB_REPOSITORY.to_owned());
+            let repository = github_repository()?;
             Some(format!(
                 "https://github.com/{repository}/releases/latest/download/coldem-manifest.json"
             ))
         })
+}
+
+fn empty_catalog() -> CatalogManifest {
+    CatalogManifest {
+        schema_version: 1,
+        published_at: "1970-01-01T00:00:00Z".into(),
+        games: Vec::new(),
+    }
+}
+
+fn validate_release_channel(value: &str) -> Result<(), String> {
+    if matches!(
+        value.trim().to_ascii_lowercase().as_str(),
+        "stable" | "test"
+    ) {
+        Ok(())
+    } else {
+        Err("Release channel must be stable or test".into())
+    }
 }
 
 fn catalog_public_key() -> Option<String> {
@@ -1067,8 +1176,14 @@ fn receipts_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(app_data_dir(app)?.join("library.json"))
 }
 
-fn catalog_cache_path(app: &AppHandle) -> Result<PathBuf, String> {
-    Ok(app_data_dir(app)?.join("catalog-cache.json"))
+fn catalog_cache_path(app: &AppHandle, channel: &str) -> Result<PathBuf, String> {
+    let filename = if channel == "stable" {
+        // Preserve the cache location used by existing launcher builds.
+        "catalog-cache.json".into()
+    } else {
+        format!("catalog-cache-{channel}.json")
+    };
+    Ok(app_data_dir(app)?.join(filename))
 }
 
 fn load_receipts(app: &AppHandle) -> Result<Vec<InstallReceipt>, String> {
@@ -1110,10 +1225,11 @@ fn upsert_receipt(app: &AppHandle, receipt: InstallReceipt) -> Result<(), String
 
 fn save_catalog_cache(
     app: &AppHandle,
+    channel: &str,
     bytes: &[u8],
     signature: Option<&str>,
 ) -> Result<(), String> {
-    let path = catalog_cache_path(app)?;
+    let path = catalog_cache_path(app, channel)?;
     let parent = path
         .parent()
         .ok_or_else(|| "Invalid catalog cache path".to_string())?;
@@ -1131,8 +1247,8 @@ fn save_catalog_cache(
     Ok(())
 }
 
-fn read_catalog_cache(app: &AppHandle) -> Result<Vec<u8>, String> {
-    let path = catalog_cache_path(app)?;
+fn read_catalog_cache(app: &AppHandle, channel: &str) -> Result<Vec<u8>, String> {
+    let path = catalog_cache_path(app, channel)?;
     let bytes =
         fs::read(&path).map_err(|error| format!("Could not read catalog cache: {error}"))?;
     if let Some(public_key) = catalog_public_key() {

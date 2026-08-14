@@ -231,7 +231,7 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
         </nav>
 
         <div className="sidebar-signal" aria-label="Coldem system signal">
-          <span><i /> SIGNAL</span><b>{playingRecord ? "PLAYING" : "STABLE"}</b>
+          <span><i /> SIGNAL</span><b>{playingRecord ? "PLAYING" : launcher.channel.toUpperCase()}</b>
           <em><i /><i /><i /><i /></em>
         </div>
 
@@ -406,7 +406,7 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
 
       {installingRecord && !installOptions && <div className="dialog-backdrop"><div className="preparing-install"><LoaderCircle className="spin" /> Preparing {installingRecord.title}...</div></div>}
       {installOptions && <InstallDialog options={installOptions} onPlan={launcher.planInstall} onInstall={performInstall} onClose={closeInstall} />}
-      {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} channel={launcher.channel} onChannelChange={launcher.setChannel} />}
       {actionError && <button type="button" className="error-toast" onClick={() => setActionError(null)}><span>{actionError}</span><small>Dismiss</small></button>}
     </main>
   );

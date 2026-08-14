@@ -11,13 +11,19 @@ pub struct BootstrapResult {
     profiles: Value,
     catalog_game_count: usize,
     catalog_restricted: bool,
+    channel: String,
 }
 
 #[tauri::command]
 pub async fn initialize_launcher(
     app: AppHandle,
     state: State<'_, AppState>,
+    channel: Option<String>,
 ) -> Result<BootstrapResult, String> {
+    if let Some(channel) = channel.as_deref() {
+        state.delivery.set_channel(channel).await?;
+    }
+    let channel = state.delivery.channel().await;
     let (butler_version, catalog) = tokio::try_join!(
         state.delivery.butler_version(&app),
         state.delivery.load_catalog(&app, true)
@@ -28,7 +34,16 @@ pub async fn initialize_launcher(
         profiles: json!([player_profile()]),
         catalog_game_count,
         catalog_restricted: catalog_game_count > 0,
+        channel,
     })
+}
+
+#[tauri::command]
+pub async fn set_release_channel(
+    channel: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    state.delivery.set_channel(&channel).await
 }
 
 #[tauri::command]

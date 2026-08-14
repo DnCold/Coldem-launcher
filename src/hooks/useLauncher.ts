@@ -10,14 +10,17 @@ import type {
   InstallPlan,
   LibrarySnapshot,
   Profile,
+  ReleaseChannel,
   Upload
 } from "../types/launcher";
+import { readReleaseChannel, saveReleaseChannel } from "../lib/releaseChannel";
 
 type AppStatus = "booting" | "login" | "ready" | "error";
 
 export function useLauncher() {
   const [status, setStatus] = useState<AppStatus>("booting");
   const [bootstrap, setBootstrap] = useState<BootstrapResult | null>(null);
+  const [channel, setChannelState] = useState<ReleaseChannel>(readReleaseChannel);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [library, setLibrary] = useState<LibrarySnapshot | null>(null);
   const [libraryError, setLibraryError] = useState<string | null>(null);
@@ -102,9 +105,13 @@ export function useLauncher() {
 
     void (async () => {
       try {
-        const result = await launcherClient.initialize();
+        const initialChannel = readReleaseChannel();
+        setChannelState(initialChannel);
+        const result = await launcherClient.initialize(initialChannel);
         if (!active) return;
         setBootstrap(result);
+        setChannelState(result.channel);
+        saveReleaseChannel(result.channel);
 
         const remembered = [...result.profiles].sort(
           (a, b) => Date.parse(b.lastConnected) - Date.parse(a.lastConnected)
@@ -163,6 +170,37 @@ export function useLauncher() {
     setStatus("login");
   }, [profile]);
 
+  const setChannel = useCallback(
+    async (nextChannel: ReleaseChannel) => {
+      if (nextChannel === channel) return;
+      const previousChannel = channel;
+      setChannelState(nextChannel);
+      saveReleaseChannel(nextChannel);
+      setLibraryError(null);
+      setUpdates([]);
+      setIsRefreshing(true);
+      try {
+        await launcherClient.setChannel(nextChannel);
+        if (profileRef.current) {
+          await loadLibrary(profileRef.current, true);
+        }
+      } catch (reason) {
+        try {
+          await launcherClient.setChannel(previousChannel);
+        } catch {
+          // Keep the original error visible; the next bootstrap will restore the persisted channel.
+        }
+        setChannelState(previousChannel);
+        saveReleaseChannel(previousChannel);
+        setLibraryError(String(reason));
+        throw reason;
+      } finally {
+        setIsRefreshing(false);
+      }
+    },
+    [channel, loadLibrary]
+  );
+
   const prepareInstall = useCallback(
     (gameId: number): Promise<InstallOptions> => {
       if (!profile) throw new Error("No active profile");
@@ -217,6 +255,7 @@ export function useLauncher() {
   return {
     status,
     bootstrap,
+    channel,
     profile,
     library,
     libraryError,
@@ -231,6 +270,7 @@ export function useLauncher() {
     cancelLogin,
     logout,
     refresh: () => profile && loadLibrary(profile, true),
+    setChannel,
     prepareInstall,
     planInstall,
     install,
