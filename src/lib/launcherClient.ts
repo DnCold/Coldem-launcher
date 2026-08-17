@@ -33,7 +33,7 @@ export interface LauncherClient {
     installLocationId: string
   ): Promise<void>;
   update(profileId: number, caveId: string, gameId: number): Promise<void>;
-  play(profileId: number, caveId: string, gameId: number): Promise<void>;
+  play(profileId: number, caveId: string, gameId: number, joinPayload?: string): Promise<void>;
   respondToPrompt(id: number | string, result: Record<string, unknown>): Promise<void>;
   openExternal(target: string): Promise<void>;
   onOperation(handler: (event: OperationEvent) => void): Promise<UnlistenFn>;
@@ -62,8 +62,8 @@ const tauriLauncherClient: LauncherClient = {
     }),
   update: (profileId, caveId, gameId) =>
     invoke("update_game", { profileId, caveId, gameId }),
-  play: (profileId, caveId, gameId) =>
-    invoke("play_game", { profileId, caveId, gameId }),
+  play: (profileId, caveId, gameId, joinPayload) =>
+    invoke("play_game", { profileId, caveId, gameId, joinPayload }),
   respondToPrompt: (id, result) =>
     invoke("respond_to_prompt", { id, result }),
   openExternal: (target) => invoke("open_external", { target }),

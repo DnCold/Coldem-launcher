@@ -29,6 +29,7 @@ export interface Game {
 
 export interface GameRecord {
   id: number;
+  slug?: string;
   title: string;
   url?: string;
   cover?: string;

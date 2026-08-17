@@ -13,6 +13,23 @@ pub(crate) enum NativeCommand {
     Connect,
     Disconnect,
     Invite { friend_id: String, content: String },
+    PublishActivity {
+        game_title: String,
+        lobby_id: String,
+        join_secret: String,
+        party_size: u32,
+        party_capacity: u32,
+    },
+    ClearActivity,
+}
+
+#[derive(Clone)]
+struct NativeActivity {
+    game_title: String,
+    lobby_id: String,
+    join_secret: String,
+    party_size: u32,
+    party_capacity: u32,
 }
 
 pub(crate) struct NativeRuntime {
@@ -27,6 +44,7 @@ impl NativeRuntime {
         saved_credentials: Option<DiscordCredentials>,
         remember_credentials: Arc<dyn Fn(DiscordCredentials) + Send + Sync>,
         clear_credentials: Arc<dyn Fn() + Send + Sync>,
+        on_join: Arc<dyn Fn(String) + Send + Sync>,
     ) -> Result<Self, String> {
         let (commands, receiver) = mpsc::channel();
         std::thread::Builder::new()
@@ -40,6 +58,7 @@ impl NativeRuntime {
                     saved_credentials,
                     remember_credentials,
                     clear_credentials,
+                    on_join,
                 )
             })
             .map_err(|error| format!("Could not start Discord Social SDK: {error}"))?;
@@ -63,6 +82,8 @@ struct CallbackState {
     restoring_session: bool,
     remember_credentials: Arc<dyn Fn(DiscordCredentials) + Send + Sync>,
     clear_credentials: Arc<dyn Fn() + Send + Sync>,
+    on_join: Arc<dyn Fn(String) + Send + Sync>,
+    pending_activity: Option<NativeActivity>,
 }
 
 fn run(
@@ -73,6 +94,7 @@ fn run(
     saved_credentials: Option<DiscordCredentials>,
     remember_credentials: Arc<dyn Fn(DiscordCredentials) + Send + Sync>,
     clear_credentials: Arc<dyn Fn() + Send + Sync>,
+    on_join: Arc<dyn Fn(String) + Send + Sync>,
 ) {
     let mut client = DiscordClient {
         opaque: std::ptr::null_mut(),
@@ -91,6 +113,8 @@ fn run(
         restoring_session: saved_credentials.is_some(),
         remember_credentials,
         clear_credentials,
+        on_join,
+        pending_activity: None,
     });
     let state_ptr = (&mut *state) as *mut CallbackState as *mut c_void;
     unsafe {
@@ -102,6 +126,13 @@ fn run(
             state_ptr,
         );
         Discord_Client_SetUserUpdatedCallback(&mut client, user_updated_callback, None, state_ptr);
+        Discord_Client_SetActivityJoinCallback(&mut client, activity_join_callback, None, state_ptr);
+        let launch = CString::new("coldem://discord/join").expect("static launch command");
+        let _ = Discord_Client_RegisterLaunchCommand(
+            &mut client,
+            application_id,
+            sdk_string(launch.as_bytes()),
+        );
         if let Some(credentials) = saved_credentials {
             Discord_Client_RefreshToken(
                 &mut client,
@@ -130,6 +161,9 @@ fn run(
             unsafe {
                 refresh_current_user(&state);
                 refresh_friends(&state);
+                if let Some(activity) = state.pending_activity.take() {
+                    publish_activity(&mut state, activity, state_ptr);
+                }
             }
             last_refresh = Instant::now();
         }
@@ -171,7 +205,17 @@ unsafe fn handle_command(
             };
             Discord_AuthorizationArgs_Init(&mut args);
             Discord_AuthorizationArgs_SetClientId(&mut args, state.application_id);
-            let scopes = CString::new("openid sdk.social_layer_presence").expect("static scope");
+            // Activity invites themselves work with the presence scopes, but the
+            // optional text attached to an invite is a Discord message and needs
+            // the communication scopes too. Ask the SDK for its supported
+            // baseline rather than hard-coding a scope list that can drift.
+            let mut scopes = DiscordString {
+                ptr: std::ptr::null_mut(),
+                size: 0,
+            };
+            Discord_Client_GetDefaultCommunicationScopes(&mut scopes);
+            let scopes = CString::new(copy_sdk_string(scopes))
+                .expect("Discord communication scopes contain no NUL bytes");
             Discord_AuthorizationArgs_SetScopes(&mut args, sdk_string(scopes.as_bytes()));
             Discord_AuthorizationArgs_SetCodeChallenge(&mut args, &mut challenge);
             state.verifier = Some(verifier);
@@ -197,7 +241,96 @@ unsafe fn handle_command(
                 state_ptr,
             );
         }
+        NativeCommand::PublishActivity {
+            game_title,
+            lobby_id,
+            join_secret,
+            party_size,
+            party_capacity,
+        } => {
+            let activity = NativeActivity {
+                game_title,
+                lobby_id,
+                join_secret,
+                party_size,
+                party_capacity,
+            };
+            if Discord_Client_GetStatus(client) == DiscordClientStatus::Ready as i32 {
+                publish_activity(state, activity, state_ptr);
+            } else {
+                state.pending_activity = Some(activity);
+            }
+        }
+        NativeCommand::ClearActivity => {
+            state.pending_activity = None;
+            Discord_Client_ClearRichPresence(client);
+        }
     }
+}
+
+unsafe fn publish_activity(
+    state: &mut CallbackState,
+    activity: NativeActivity,
+    state_ptr: *mut c_void,
+) {
+    let Ok(name) = CString::new(activity.game_title.as_str()) else {
+        set_message(state_ptr, "Could not publish Discord presence for this game title.");
+        return;
+    };
+    let Ok(activity_state) = CString::new(format!(
+        "{} · Hosting EOS lobby {}/{}",
+        activity.game_title,
+        activity.party_size, activity.party_capacity
+    )) else {
+        set_message(state_ptr, "Could not publish Discord lobby state.");
+        return;
+    };
+    let details = CString::new("Discord invites open").expect("static activity details");
+    let Ok(lobby_id) = CString::new(activity.lobby_id.as_str()) else {
+        set_message(state_ptr, "Could not publish Discord presence for this EOS lobby.");
+        return;
+    };
+    let Ok(join_secret) = CString::new(activity.join_secret.as_str()) else {
+        set_message(state_ptr, "Could not publish the Discord join payload.");
+        return;
+    };
+
+    let mut rich_presence = DiscordActivity {
+        opaque: std::ptr::null_mut(),
+    };
+    let mut party = DiscordActivityParty {
+        opaque: std::ptr::null_mut(),
+    };
+    let mut secrets = DiscordActivitySecrets {
+        opaque: std::ptr::null_mut(),
+    };
+    Discord_Activity_Init(&mut rich_presence);
+    Discord_ActivityParty_Init(&mut party);
+    Discord_ActivitySecrets_Init(&mut secrets);
+    Discord_Activity_SetType(&mut rich_presence, 0);
+    Discord_Activity_SetName(&mut rich_presence, sdk_string(name.as_bytes()));
+    let mut activity_state = sdk_string(activity_state.as_bytes());
+    Discord_Activity_SetState(&mut rich_presence, &mut activity_state);
+    let mut details = sdk_string(details.as_bytes());
+    Discord_Activity_SetDetails(&mut rich_presence, &mut details);
+    Discord_ActivityParty_SetId(&mut party, sdk_string(lobby_id.as_bytes()));
+    Discord_ActivityParty_SetCurrentSize(&mut party, activity.party_size.min(i32::MAX as u32) as i32);
+    Discord_ActivityParty_SetMaxSize(&mut party, activity.party_capacity.min(i32::MAX as u32) as i32);
+    Discord_ActivityParty_SetPrivacy(&mut party, 1);
+    Discord_Activity_SetParty(&mut rich_presence, &mut party);
+    Discord_ActivitySecrets_SetJoin(&mut secrets, sdk_string(join_secret.as_bytes()));
+    Discord_Activity_SetSecrets(&mut rich_presence, &mut secrets);
+    Discord_Activity_SetSupportedPlatforms(&mut rich_presence, 1);
+    Discord_Client_UpdateRichPresence(
+        &mut *(state.client as *mut DiscordClient),
+        &mut rich_presence,
+        presence_callback,
+        None,
+        state_ptr,
+    );
+    Discord_ActivitySecrets_Drop(&mut secrets);
+    Discord_ActivityParty_Drop(&mut party);
+    Discord_Activity_Drop(&mut rich_presence);
 }
 
 unsafe extern "C" fn authorization_callback(
@@ -357,6 +490,30 @@ unsafe extern "C" fn invite_callback(_result: *mut DiscordClientResult, user_dat
     }
 }
 
+unsafe extern "C" fn presence_callback(result: *mut DiscordClientResult, user_data: *mut c_void) {
+    if result.is_null() || user_data.is_null() {
+        return;
+    }
+    if Discord_ClientResult_Successful(result) {
+        set_message(user_data, "Discord lobby invites are live.");
+    } else {
+        set_message(user_data, "Discord could not publish this lobby invite.");
+    }
+}
+
+unsafe extern "C" fn activity_join_callback(join_secret: DiscordString, user_data: *mut c_void) {
+    if user_data.is_null() {
+        return;
+    }
+    let payload = copy_sdk_string(join_secret);
+    if payload.is_empty() {
+        set_message(user_data, "Discord sent an empty join payload.");
+        return;
+    }
+    let state = &*(user_data as *mut CallbackState);
+    (state.on_join)(payload);
+}
+
 unsafe fn refresh_friends(state: &CallbackState) {
     let mut friends = Vec::new();
     for (group, group_name) in [(0_i32, "playing"), (1_i32, "online"), (2_i32, "offline")] {
@@ -497,6 +654,18 @@ struct DiscordClientResult {
     opaque: *mut c_void,
 }
 #[repr(C)]
+struct DiscordActivity {
+    opaque: *mut c_void,
+}
+#[repr(C)]
+struct DiscordActivityParty {
+    opaque: *mut c_void,
+}
+#[repr(C)]
+struct DiscordActivitySecrets {
+    opaque: *mut c_void,
+}
+#[repr(C)]
 struct DiscordAuthorizationArgs {
     opaque: *mut c_void,
 }
@@ -555,6 +724,7 @@ extern "C" {
     fn Discord_Client_IsAuthenticated(client: *mut DiscordClient) -> bool;
     fn Discord_Client_Connect(client: *mut DiscordClient);
     fn Discord_Client_Disconnect(client: *mut DiscordClient);
+    fn Discord_Client_GetDefaultCommunicationScopes(return_value: *mut DiscordString);
     fn Discord_Client_CreateAuthorizationCodeVerifier(
         client: *mut DiscordClient,
         verifier: *mut DiscordAuthorizationCodeVerifier,
@@ -643,6 +813,43 @@ extern "C" {
         free: Option<unsafe extern "C" fn(*mut c_void)>,
         user_data: *mut c_void,
     );
+    fn Discord_Client_RegisterLaunchCommand(
+        client: *mut DiscordClient,
+        application_id: u64,
+        command: DiscordString,
+    ) -> bool;
+    fn Discord_Client_SetActivityJoinCallback(
+        client: *mut DiscordClient,
+        cb: unsafe extern "C" fn(DiscordString, *mut c_void),
+        free: Option<unsafe extern "C" fn(*mut c_void)>,
+        user_data: *mut c_void,
+    );
+    fn Discord_Client_ClearRichPresence(client: *mut DiscordClient);
+    fn Discord_Client_UpdateRichPresence(
+        client: *mut DiscordClient,
+        activity: *mut DiscordActivity,
+        cb: unsafe extern "C" fn(*mut DiscordClientResult, *mut c_void),
+        free: Option<unsafe extern "C" fn(*mut c_void)>,
+        user_data: *mut c_void,
+    );
+    fn Discord_Activity_Init(activity: *mut DiscordActivity);
+    fn Discord_Activity_Drop(activity: *mut DiscordActivity);
+    fn Discord_Activity_SetType(activity: *mut DiscordActivity, value: i32);
+    fn Discord_Activity_SetName(activity: *mut DiscordActivity, value: DiscordString);
+    fn Discord_Activity_SetState(activity: *mut DiscordActivity, value: *mut DiscordString);
+    fn Discord_Activity_SetDetails(activity: *mut DiscordActivity, value: *mut DiscordString);
+    fn Discord_Activity_SetParty(activity: *mut DiscordActivity, value: *mut DiscordActivityParty);
+    fn Discord_Activity_SetSecrets(activity: *mut DiscordActivity, value: *mut DiscordActivitySecrets);
+    fn Discord_Activity_SetSupportedPlatforms(activity: *mut DiscordActivity, value: i32);
+    fn Discord_ActivityParty_Init(party: *mut DiscordActivityParty);
+    fn Discord_ActivityParty_Drop(party: *mut DiscordActivityParty);
+    fn Discord_ActivityParty_SetId(party: *mut DiscordActivityParty, value: DiscordString);
+    fn Discord_ActivityParty_SetCurrentSize(party: *mut DiscordActivityParty, value: i32);
+    fn Discord_ActivityParty_SetMaxSize(party: *mut DiscordActivityParty, value: i32);
+    fn Discord_ActivityParty_SetPrivacy(party: *mut DiscordActivityParty, value: i32);
+    fn Discord_ActivitySecrets_Init(secrets: *mut DiscordActivitySecrets);
+    fn Discord_ActivitySecrets_Drop(secrets: *mut DiscordActivitySecrets);
+    fn Discord_ActivitySecrets_SetJoin(secrets: *mut DiscordActivitySecrets, value: DiscordString);
     fn Discord_Client_GetRelationshipsByGroup(
         client: *mut DiscordClient,
         group: i32,

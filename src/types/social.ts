@@ -29,6 +29,11 @@ export interface SocialSession {
   joinable: boolean;
 }
 
+export interface DiscordJoinRequest {
+  gameSlug: "robot-rock-reborn";
+  code: string;
+}
+
 export interface SocialSnapshot {
   connection: SocialConnectionState;
   applicationConfigured: boolean;
@@ -36,5 +41,6 @@ export interface SocialSnapshot {
   currentUser?: SocialIdentity;
   friends: SocialFriend[];
   activeSession?: SocialSession;
+  pendingJoin?: DiscordJoinRequest;
   message?: string;
 }

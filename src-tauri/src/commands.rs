@@ -135,13 +135,21 @@ pub async fn play_game(
     _profile_id: u64,
     _cave_id: String,
     game_id: u64,
+    join_payload: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let social = state.social.clone();
     let delivery = state.delivery.clone();
+    if let Some(payload) = join_payload.as_deref() {
+        let request = crate::social::parse_join_payload(payload)?;
+        let invited_game_id = delivery.game_id_for_slug(&app, &request.game_slug).await?;
+        if invited_game_id != game_id {
+            return Err("This Discord invite does not match the game you selected.".into());
+        }
+    }
     let bridge = social.prepare_game_bridge(app.clone(), game_id).await?;
     let started_at = std::time::Instant::now();
-    match delivery.play(&app, game_id, &bridge) {
+    match delivery.play(&app, game_id, &bridge, join_payload.as_deref()) {
         Ok(child) => {
             let token = bridge.token;
             let tracking_app = app.clone();

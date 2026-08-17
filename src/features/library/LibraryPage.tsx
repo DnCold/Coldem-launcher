@@ -58,6 +58,7 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
   const [query, setQuery] = useState("");
   const [installOptions, setInstallOptions] = useState<InstallOptions | null>(null);
   const [installingRecord, setInstallingRecord] = useState<GameRecord | null>(null);
+  const [inviteInstallPayload, setInviteInstallPayload] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -83,6 +84,20 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
       return true;
     });
   }, [caveByGame, filter, launcher.library?.records, query, updateByGame]);
+
+  const pendingInvite = social.snapshot?.pendingJoin;
+  const invitePayload = pendingInvite
+    ? `coldem:v1:${pendingInvite.gameSlug}:${pendingInvite.code}`
+    : null;
+  const invitedRecord = useMemo(
+    () => pendingInvite
+      ? launcher.library?.records.find((record) => record.slug === pendingInvite.gameSlug)
+      : undefined,
+    [launcher.library?.records, pendingInvite]
+  );
+  const invitedCave = invitedRecord ? caveByGame.get(invitedRecord.id) : undefined;
+  const invitedOperation = invitedRecord ? launcher.operations[invitedRecord.id] : undefined;
+  const isInvitedGameRunning = invitedOperation?.kind === "play" && invitedOperation.state === "running";
 
   const recentCave = useMemo(
     () => [...(launcher.library?.caves ?? [])].sort((a, b) =>
@@ -146,7 +161,18 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
 
   const performInstall = (upload: Upload) => {
     if (!installOptions) return;
-    safely(launcher.install(installOptions.game, upload, installOptions.installLocationId));
+    const game = installOptions.game;
+    const pendingPayload = inviteInstallPayload;
+    safely((async () => {
+      await launcher.install(game, upload, installOptions.installLocationId);
+      if (!pendingPayload) return;
+      const refreshed = await launcher.refresh();
+      const cave = refreshed?.caves.find((candidate) => candidate.game.id === game.id);
+      if (!cave) throw new Error("Robot Rock installed, but Coldem could not find its launch record.");
+      await launcher.play(cave.id, game.id, pendingPayload);
+      setInviteInstallPayload(null);
+      await social.dismissJoin();
+    })());
   };
 
   const safely = (work: Promise<void>) => {
@@ -163,6 +189,27 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
     } else {
       void openInstall(featuredRecord);
     }
+  };
+
+  const joinInvite = () => {
+    if (!invitedRecord || !invitedCave || !invitePayload) return;
+    safely((async () => {
+      await launcher.play(invitedCave.id, invitedRecord.id, invitePayload);
+      await social.dismissJoin();
+    })());
+  };
+
+  const installAndJoinInvite = () => {
+    if (!invitedRecord || !invitePayload) return;
+    setInviteInstallPayload(invitePayload);
+    void openInstall(invitedRecord);
+  };
+
+  const queueInvite = () => {
+    if (!invitedRecord || !invitePayload) return;
+    safely((async () => {
+      await social.queueJoinForRunningGame(invitedRecord.id, invitePayload);
+    })());
   };
 
   const featuredAction = isFeaturedBusy
@@ -404,6 +451,37 @@ export function LibraryPage({ launcher }: LibraryPageProps) {
         <button type="button" className="logout-button" onClick={() => void launcher.logout()}><LogOut size={16} /> Leave library</button>
       </aside>
 
+      {pendingInvite && (
+        <div className="invite-backdrop" role="presentation">
+          <section className="invite-landing" role="dialog" aria-modal="true" aria-labelledby="discord-join-title">
+            <span className="invite-landing__stamp">DISCORD // EOS RELAY</span>
+            <img src={runnerHead} alt="" className="invite-landing__runner" />
+            <p className="eyebrow">SQUAD SIGNAL RECEIVED</p>
+            <h2 id="discord-join-title">Robot Rock is calling.</h2>
+            <p>A friend sent you a live lobby invite. Coldem will use the same EOS relay checks as a manual join.</p>
+            <div className="invite-landing__code"><small>LOBBY CODE</small><strong>{pendingInvite.code}</strong></div>
+            {!invitedRecord ? (
+              <p className="form-error">Robot Rock is not available in this Coldem catalog yet. Refresh after its delivery release is published.</p>
+            ) : isInvitedGameRunning ? (
+              <p className="invite-landing__notice">Robot Rock is already running. Queue this invite and it will only join once the game is safely idle.</p>
+            ) : invitedCave ? (
+              <p className="invite-landing__notice">Robot Rock is installed and ready to connect.</p>
+            ) : (
+              <p className="invite-landing__notice">Robot Rock needs to be installed before it can join this lobby.</p>
+            )}
+            <div className="invite-landing__actions">
+              <button type="button" className="secondary-button" onClick={() => void social.dismissJoin()}>Not now</button>
+              {isInvitedGameRunning && invitePayload ? (
+                <button type="button" className="primary-button" onClick={queueInvite}>Queue invite</button>
+              ) : invitedCave ? (
+                <button type="button" className="primary-button" onClick={joinInvite}>Join Robot Rock</button>
+              ) : invitedRecord ? (
+                <button type="button" className="primary-button" onClick={installAndJoinInvite}>Install &amp; join</button>
+              ) : null}
+            </div>
+          </section>
+        </div>
+      )}
       {installingRecord && !installOptions && <div className="dialog-backdrop"><div className="preparing-install"><LoaderCircle className="spin" /> Preparing {installingRecord.title}...</div></div>}
       {installOptions && <InstallDialog options={installOptions} onPlan={launcher.planInstall} onInstall={performInstall} onClose={closeInstall} />}
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} channel={launcher.channel} onChannelChange={launcher.setChannel} />}

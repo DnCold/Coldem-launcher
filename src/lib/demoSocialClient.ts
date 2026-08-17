@@ -90,6 +90,12 @@ export const demoSocialClient: SocialClient = {
     }
     await new Promise((resolve) => window.setTimeout(resolve, 300));
   },
+  pendingJoin: async () => snapshot.pendingJoin ?? null,
+  dismissJoin: async () => {
+    snapshot = { ...snapshot, pendingJoin: undefined };
+    publish();
+  },
+  queueJoinForRunningGame: async () => undefined,
   onUpdate: async (handler) => {
     updateHandlers.add(handler);
     return (() => updateHandlers.delete(handler)) as UnlistenFn;

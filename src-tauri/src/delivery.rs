@@ -283,6 +283,7 @@ impl DeliveryService {
                 let receipt = receipt_by_game.get(&game.id);
                 json!({
                     "id": game.id,
+                    "slug": game.slug,
                     "title": game.title,
                     "url": optional_string(&game.page_url),
                     "cover": optional_string(&game.cover_url),
@@ -311,6 +312,16 @@ impl DeliveryService {
             "stale": false,
             "warning": warning
         }))
+    }
+
+    pub async fn game_id_for_slug(&self, app: &AppHandle, slug: &str) -> Result<u64, String> {
+        let catalog = self.load_catalog(app, false).await?;
+        catalog
+            .games
+            .iter()
+            .find(|game| game.slug == slug && game.platforms.contains_key(PLATFORM))
+            .map(|game| game.id)
+            .ok_or_else(|| format!("The invited game '{slug}' is not available in this Coldem catalog."))
     }
 
     pub async fn updates(&self, app: &AppHandle) -> Result<Value, String> {
@@ -539,6 +550,7 @@ impl DeliveryService {
         app: &AppHandle,
         game_id: u64,
         bridge: &GameBridgeLaunch,
+        join_payload: Option<&str>,
     ) -> Result<Child, String> {
         self.emit(app, "play", game_id, "queued", Some(0.0), None, None, None);
         let result = (|| {
@@ -564,10 +576,15 @@ impl DeliveryService {
             if !canonical_executable.starts_with(&canonical_install) {
                 return Err("The game executable resolves outside its managed installation".into());
             }
-            let child = Command::new(&canonical_executable)
+            let mut command = Command::new(&canonical_executable);
+            command
                 .current_dir(&install_dir)
                 .env("COLDEM_SOCIAL_ENDPOINT", &bridge.endpoint)
-                .env("COLDEM_SOCIAL_TOKEN", &bridge.token)
+                .env("COLDEM_SOCIAL_TOKEN", &bridge.token);
+            if let Some(join_payload) = join_payload {
+                command.arg(format!("--coldem-join={join_payload}"));
+            }
+            let child = command
                 .spawn()
                 .map_err(|error| format!("Could not start the game: {error}"))?;
             receipt.last_touched_at = now_string();

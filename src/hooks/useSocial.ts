@@ -67,6 +67,27 @@ export function useSocial() {
     }
   }, []);
 
+  const dismissJoin = useCallback(async () => {
+    setError(null);
+    try {
+      await socialClient.dismissJoin();
+      setSnapshot(await socialClient.snapshot());
+    } catch (reason) {
+      setError(String(reason));
+    }
+  }, []);
+
+  const queueJoinForRunningGame = useCallback(async (gameId: number, joinPayload: string) => {
+    setError(null);
+    try {
+      await socialClient.queueJoinForRunningGame(gameId, joinPayload);
+      await socialClient.dismissJoin();
+      setNotice("Invite queued. Robot Rock will join when it is safe to leave its current session.");
+    } catch (reason) {
+      setError(String(reason));
+    }
+  }, []);
+
   return {
     snapshot,
     isConnecting,
@@ -75,7 +96,8 @@ export function useSocial() {
     notice,
     connect,
     disconnect,
-    invite
+    invite,
+    dismissJoin,
+    queueJoinForRunningGame
   };
 }
-

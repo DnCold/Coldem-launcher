@@ -235,9 +235,9 @@ export function useLauncher() {
   );
 
   const play = useCallback(
-    async (caveId: string, gameId: number) => {
+    async (caveId: string, gameId: number, joinPayload?: string) => {
       if (!profile) return;
-      await launcherClient.play(profile.id, caveId, gameId);
+      await launcherClient.play(profile.id, caveId, gameId, joinPayload);
     },
     [profile]
   );

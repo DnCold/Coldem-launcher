@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Coldem",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "identifier": "games.coldem.launcher",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -30,6 +30,11 @@
     }
   },
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["coldem"]
+      }
+    },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFFQzFFNDcyRTBENzBDOEEKUldTS0ROZmdjdVRCcm12VWhOL24wd3BaSFlzUVRzUjQyMTNXdzU5cElSVjJEWEhzMWZQVDFjN2UK",
       "endpoints": [

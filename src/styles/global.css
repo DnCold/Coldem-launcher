@@ -2002,3 +2002,18 @@ h1, h2, h3, p { margin: 0; }
   .login-runner figcaption { display: none; }
   .boot-runner { right: -40px; bottom: -86px; height: min(54vh, 390px); opacity: .48; }
 }
+
+/* Discord invites use the same cold-street visual language as the install bay. */
+.invite-backdrop { position: fixed; z-index: 96; inset: 0; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 78% 12%, rgba(124,49,200,.34), transparent 34%), rgba(4,5,13,.7); backdrop-filter: blur(9px); animation: fade-in 160ms ease; }
+.invite-landing { position: relative; overflow: hidden; width: min(480px, 100%); padding: 31px 33px 29px; border: 1px solid rgba(179,93,255,.7); border-radius: 19px; background: linear-gradient(145deg, rgba(21,14,35,.98), rgba(8,12,22,.98)); box-shadow: 0 24px 80px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.1); }
+.invite-landing::before { content: ""; position: absolute; inset: 9px; border: 1px dashed rgba(175,98,255,.22); border-radius: 13px; pointer-events: none; }
+.invite-landing > * { position: relative; z-index: 1; }
+.invite-landing__stamp { display: inline-block; color: #c384ff; font: 700 10px/1.2 monospace; letter-spacing: .14em; transform: rotate(-2deg); }
+.invite-landing__runner { position: absolute; right: -20px; top: 22px; width: 135px; opacity: .28; filter: drop-shadow(0 0 20px rgba(166,71,255,.6)); transform: rotate(8deg); }
+.invite-landing h2 { max-width: 300px; margin: 8px 0; color: #f8f3ff; font-family: Impact, "Arial Narrow", sans-serif; font-size: clamp(30px,6vw,45px); font-weight: 400; letter-spacing: .025em; line-height: .92; text-transform: uppercase; }
+.invite-landing > p:not(.eyebrow) { max-width: 350px; color: #c3bed1; font-size: 13px; line-height: 1.55; }
+.invite-landing__code { display: flex; align-items: end; gap: 15px; width: fit-content; margin: 21px 0 16px; padding: 10px 16px 11px; border: 1px solid rgba(185,105,255,.5); border-radius: 10px; background: rgba(117,45,190,.16); }
+.invite-landing__code small { color: #bdb3cb; font: 700 9px/1 monospace; letter-spacing: .14em; }
+.invite-landing__code strong { color: var(--acid); font: 700 22px/1 monospace; letter-spacing: .12em; text-shadow: 0 0 18px rgba(190,255,91,.45); }
+.invite-landing__notice { margin-bottom: 22px; color: #b9e6cb !important; }
+.invite-landing__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }

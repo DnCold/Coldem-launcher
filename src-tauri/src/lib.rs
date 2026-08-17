@@ -37,12 +37,15 @@ impl Default for AppState {
 pub fn run() {
     let state = AppState::default();
     #[cfg(target_os = "windows")]
-    let social = state.social.clone();
+    let startup_social = state.social.clone();
+    let link_social = state.social.clone();
     let mut builder = tauri::Builder::default();
 
     #[cfg(desktop)]
     {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        builder = builder.plugin(tauri_plugin_deep_link::init());
+        builder = builder.plugin(tauri_plugin_single_instance::init(move |app, argv, _cwd| {
+            link_social.receive_deep_link_arguments(app, argv);
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
                 let _ = window.set_focus();
@@ -58,7 +61,10 @@ pub fn run() {
             #[cfg(target_os = "windows")]
             ensure_discord_runtime(app.handle())?;
             #[cfg(target_os = "windows")]
-            let _ = social.restore_saved_session(app.handle());
+            {
+                let _ = startup_social.restore_saved_session(app.handle());
+                startup_social.receive_deep_link_arguments(app.handle(), std::env::args().skip(1));
+            }
             Ok(())
         })
         .manage(state)
@@ -69,6 +75,9 @@ pub fn run() {
             check_launcher_update,
             install_launcher_update,
             social_snapshot,
+            pending_discord_join,
+            dismiss_discord_join,
+            queue_discord_join_for_running_game,
             connect_discord,
             disconnect_discord,
             invite_discord_friend,

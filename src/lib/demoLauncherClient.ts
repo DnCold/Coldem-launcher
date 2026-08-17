@@ -25,6 +25,7 @@ const profile: Profile = {
 
 const record: GameRecord = {
   id: 1,
+  slug: "robot-rock-reborn",
   title: "Robot Rock",
   owned: true
 };
@@ -48,7 +49,7 @@ const game: Game = {
 
 const upload: Upload = {
   id: 1,
-  filename: "robot-rock-0.1.0-full.pwr",
+  filename: "robot-rock-reborn-0.1.0-full.pwr",
   displayName: "Windows · 0.1.0",
   size: 825_000_000,
   type: "default",
@@ -148,11 +149,11 @@ export const demoLauncherClient: LauncherClient = {
       upload,
       build: { version: "0.1.0" },
       stats: { installedAt, lastTouchedAt: installedAt, secondsRun: 0 },
-      installInfo: { installFolder: "C:/Games/robot-rock", installedSize: 1_420_000_000 }
+      installInfo: { installFolder: "C:/Games/robot-rock-reborn", installedSize: 1_420_000_000 }
     });
   },
   update: async (_profileId, _caveId, gameId) => simulateOperation("update", gameId),
-  play: async (_profileId, _caveId, gameId) => simulatePlay(gameId),
+  play: async (_profileId, _caveId, gameId, _joinPayload) => simulatePlay(gameId),
   respondToPrompt: async () => undefined,
   openExternal: async (target) => {
     window.open(target, "_blank", "noopener,noreferrer");
