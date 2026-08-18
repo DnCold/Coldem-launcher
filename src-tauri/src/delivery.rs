@@ -324,6 +324,20 @@ impl DeliveryService {
             .ok_or_else(|| format!("The invited game '{slug}' is not available in this Coldem catalog."))
     }
 
+    pub async fn game_social_info(
+        &self,
+        app: &AppHandle,
+        game_id: u64,
+    ) -> Result<(String, String), String> {
+        let catalog = self.load_catalog(app, false).await?;
+        catalog
+            .games
+            .iter()
+            .find(|game| game.id == game_id)
+            .map(|game| (game.slug.clone(), game.title.clone()))
+            .ok_or_else(|| format!("The game {game_id} is not available in this Coldem catalog."))
+    }
+
     pub async fn updates(&self, app: &AppHandle) -> Result<Value, String> {
         let catalog = self.load_catalog(app, true).await?;
         let receipts = load_receipts(app)?;

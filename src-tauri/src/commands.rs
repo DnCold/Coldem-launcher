@@ -140,6 +140,7 @@ pub async fn play_game(
 ) -> Result<(), String> {
     let social = state.social.clone();
     let delivery = state.delivery.clone();
+    let (game_slug, game_title) = delivery.game_social_info(&app, game_id).await?;
     if let Some(payload) = join_payload.as_deref() {
         let request = crate::social::parse_join_payload(payload)?;
         let invited_game_id = delivery.game_id_for_slug(&app, &request.game_slug).await?;
@@ -152,7 +153,9 @@ pub async fn play_game(
     match delivery.play(&app, game_id, &bridge, join_payload.as_deref()) {
         Ok(child) => {
             let token = bridge.token;
+            let presence_app = app.clone();
             let tracking_app = app.clone();
+            social.mark_game_running(&presence_app, game_id, game_slug, game_title);
             social.watch_game_process(app, game_id, token, child, started_at, move |elapsed| {
                 let _ = delivery.record_play_finished(&tracking_app, game_id, elapsed);
             });

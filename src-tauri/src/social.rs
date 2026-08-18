@@ -17,6 +17,7 @@ const MAX_BRIDGE_REQUEST: usize = 64 * 1024;
 
 pub struct SocialService {
     active_session: Mutex<Option<SocialSession>>,
+    running_game: Mutex<Option<SocialSession>>,
     game_bridges: Mutex<HashMap<String, GameBridgeState>>,
     pending_join: Mutex<Option<DiscordJoinRequest>>,
     native_snapshot: Arc<Mutex<NativeSnapshot>>,
@@ -117,6 +118,7 @@ impl SocialService {
     pub fn new() -> Self {
         Self {
             active_session: Mutex::new(None),
+            running_game: Mutex::new(None),
             game_bridges: Mutex::new(HashMap::new()),
             pending_join: Mutex::new(None),
             native_snapshot: Arc::new(Mutex::new(NativeSnapshot {
@@ -155,7 +157,8 @@ impl SocialService {
                 .active_session
                 .lock()
                 .ok()
-                .and_then(|value| value.clone()),
+                .and_then(|value| value.clone())
+                .or_else(|| self.running_game.lock().ok().and_then(|value| value.clone())),
             pending_join: self.pending_join.lock().ok().and_then(|value| value.clone()),
             message: Some(if !application_configured {
                 "The Discord application ID is not configured for this build.".into()
@@ -353,7 +356,39 @@ impl SocialService {
                 *session = None;
             }
         }
+        if let Ok(mut running_game) = self.running_game.lock() {
+            if running_game
+                .as_ref()
+                .is_some_and(|value| value.game_id == game_id)
+            {
+                *running_game = None;
+            }
+        }
         self.clear_activity();
+        self.emit_snapshot(app);
+    }
+
+    pub fn mark_game_running(
+        &self,
+        app: &AppHandle,
+        game_id: u64,
+        game_slug: String,
+        game_title: String,
+    ) {
+        let session = SocialSession {
+            game_id,
+            game_slug,
+            game_title,
+            lobby_id: String::new(),
+            join_secret: String::new(),
+            party_size: 0,
+            party_capacity: 0,
+            joinable: false,
+        };
+        if let Ok(mut running_game) = self.running_game.lock() {
+            *running_game = Some(session);
+        }
+        self.sync_activity();
         self.emit_snapshot(app);
     }
 
@@ -370,7 +405,8 @@ impl SocialService {
             .active_session
             .lock()
             .ok()
-            .and_then(|value| value.clone());
+            .and_then(|value| value.clone())
+            .or_else(|| self.running_game.lock().ok().and_then(|value| value.clone()));
         let Some(session) = session else {
             self.clear_activity();
             return;
@@ -589,7 +625,7 @@ async fn handle_bridge_request(
                 *session = None;
             }
         }
-        service.clear_activity();
+        service.sync_activity();
         service.emit_snapshot(&app);
         write_http_response(&mut stream, 204, "").await;
         return Ok(());
