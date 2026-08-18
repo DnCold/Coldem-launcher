@@ -2017,3 +2017,141 @@ h1, h2, h3, p { margin: 0; }
 .invite-landing__code strong { color: var(--acid); font: 700 22px/1 monospace; letter-spacing: .12em; text-shadow: 0 0 18px rgba(190,255,91,.45); }
 .invite-landing__notice { margin-bottom: 22px; color: #b9e6cb !important; }
 .invite-landing__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+
+/* 1080p legibility pass — secondary UI must remain comfortably readable, not merely high-contrast. */
+.activity-rail { padding: 16px; }
+.profile-card small { font-size: 12px; line-height: 1.3; letter-spacing: .035em; }
+
+.crew-dossier { margin-top: 10px; padding: 11px 12px 10px; }
+.crew-dossier > p { margin-bottom: 7px; font-size: 10px; line-height: 1.3; }
+.crew-dossier > div { gap: 7px; min-height: 30px; }
+.crew-dossier .pet-sticker { width: 32px; }
+.crew-dossier b { font-size: 12px; line-height: 1.1; }
+.crew-dossier small { margin-top: 3px; font-size: 11px; line-height: 1.35; }
+.crew-dossier em { margin-top: 8px; padding-top: 7px; font-size: 10px; line-height: 1.4; }
+
+.social-panel { margin-top: 12px; padding: 16px 14px 14px; }
+.social-panel::before { top: -8px; right: 9px; padding: 3px 6px; font-size: 9px; }
+.social-panel__heading { min-height: 29px; margin-bottom: 9px; }
+.social-panel__heading > span { min-width: 23px; height: 23px; font-size: 11px; }
+.social-session { gap: 9px; margin-top: 12px; padding: 10px; }
+.social-session strong { font-size: 13px; line-height: 1.2; }
+.social-session small { font-size: 12px; line-height: 1.35; white-space: normal; }
+.social-group { margin-top: 14px; }
+.social-group > p { font-size: 10px; line-height: 1.25; letter-spacing: .11em; }
+.social-group ul { gap: 5px; margin-top: 7px; }
+.social-friend { gap: 9px; min-height: 46px; padding: 6px 4px; }
+.social-avatar { width: 34px; height: 34px; font-size: 9px; }
+.social-friend__identity strong { font-size: 13px; line-height: 1.2; }
+.social-friend__identity small { font-size: 12px; line-height: 1.3; }
+.social-invite { width: 30px; height: 30px; }
+.social-panel__empty { padding: 25px 10px 15px; font-size: 12px; line-height: 1.4; }
+.social-connect { gap: 9px; padding: 25px 11px 16px; }
+.social-connect strong { font-size: 13px; line-height: 1.25; }
+.social-connect p,
+.social-feedback,
+.social-disconnect { font-size: 12px; line-height: 1.4; }
+.social-connect > button { min-height: 38px; font-size: 12px; }
+
+.downloads-panel { margin-top: 16px; padding: 16px 14px; }
+.rail-heading > span { font-size: 12px; }
+.downloads-panel__stamp { margin-top: 8px; font-size: 10px; line-height: 1.4; letter-spacing: .1em; }
+.downloads-empty { padding: 30px 10px 22px; }
+.downloads-empty strong { font-size: 14px; line-height: 1.2; }
+.downloads-empty p { font-size: 12px; line-height: 1.45; }
+.download-row { gap: 10px; padding: 10px; }
+.download-row__body strong { font-size: 13px; line-height: 1.25; }
+.download-row__body small,
+.download-row__body > span { font-size: 12px; line-height: 1.35; }
+.downloads-panel__telemetry { margin-top: 12px; padding-top: 9px; font-size: 10px; line-height: 1.35; }
+.downloads-panel__telemetry b { font-size: 10px; }
+.rail-radio strong { font-size: 12px; line-height: 1.25; }
+.rail-radio small { font-size: 11px; line-height: 1.35; }
+
+/* The clarity setting deliberately changes size as well as contrast. */
+:root[data-coldem-clarity="on"] .activity-rail {
+  color: #f3f5ff;
+}
+:root[data-coldem-clarity="on"] .activity-rail small,
+:root[data-coldem-clarity="on"] .activity-rail .social-panel__empty,
+:root[data-coldem-clarity="on"] .activity-rail .social-connect p,
+:root[data-coldem-clarity="on"] .activity-rail .social-feedback,
+:root[data-coldem-clarity="on"] .activity-rail .social-disconnect,
+:root[data-coldem-clarity="on"] .activity-rail .downloads-panel__stamp,
+:root[data-coldem-clarity="on"] .activity-rail .downloads-panel__telemetry,
+:root[data-coldem-clarity="on"] .activity-rail .rail-radio small {
+  color: #e1e6f4 !important;
+  font-size: 13px !important;
+  font-weight: 650;
+  letter-spacing: .02em;
+}
+:root[data-coldem-clarity="on"] .activity-rail .crew-dossier > p,
+:root[data-coldem-clarity="on"] .activity-rail .social-group > p,
+:root[data-coldem-clarity="on"] .activity-rail .social-panel::before,
+:root[data-coldem-clarity="on"] .activity-rail .downloads-panel::before {
+  color: #fff8ff;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+/* Keep operational information readable everywhere; only purely decorative marks stay micro-sized. */
+.window-bar__label { font-size: 11px; }
+.sidebar__nav > p { font-size: 10px; line-height: 1.25; }
+.sidebar-signal,
+.sidebar-signal b { font-size: 10px; line-height: 1.25; }
+.runner-ident b { font-size: 12px; }
+.runner-ident small { font-size: 10px; line-height: 1.3; }
+.topbar__runner-signal { font-size: 10px; line-height: 1.25; }
+.coldem-status-strip { font-size: 11px; line-height: 1.3; }
+.coldem-status-strip b { font-size: 10px; }
+.featured-hero__intel span { font-size: 11px; line-height: 1.3; }
+.featured-hero__serial { font-size: 11px; line-height: 1.25; }
+.featured-hero__serial b { font-size: 10px; }
+.featured-hero__tape { font-size: 10px; line-height: 1.25; }
+.featured-hero__tape b { font-size: 9px; }
+.game-card__archive { font-size: 11px; line-height: 1.3; }
+.game-card__archive i,
+.game-card__archive b { font-size: 10px; }
+.game-card__live { font-size: 10px; line-height: 1.2; }
+.library-alert p,
+.library-alert button,
+.login-panel__header > span,
+.login-panel__footer,
+.dialog__header .eyebrow,
+.dialog__footer .secondary-button,
+.update-dialog__body small,
+.update-progress span { font-size: 11px; }
+.settings-dialog header p,
+.settings-dialog__row strong,
+.settings-dialog__row small,
+.settings-toggle,
+.settings-channel-select select,
+.settings-dialog__error,
+.settings-dialog footer,
+.settings-dialog footer b { font-size: 11px; line-height: 1.35; }
+
+:root[data-coldem-clarity="on"] .app-shell .eyebrow,
+:root[data-coldem-clarity="on"] .app-shell .feature-tag,
+:root[data-coldem-clarity="on"] .app-shell .game-card__genre,
+:root[data-coldem-clarity="on"] .app-shell .game-card__title-row p,
+:root[data-coldem-clarity="on"] .app-shell .game-card__archive,
+:root[data-coldem-clarity="on"] .app-shell .sidebar__nav > p,
+:root[data-coldem-clarity="on"] .app-shell .sidebar-signal,
+:root[data-coldem-clarity="on"] .app-shell .sidebar-signal b,
+:root[data-coldem-clarity="on"] .app-shell .runner-ident small,
+:root[data-coldem-clarity="on"] .app-shell .topbar__runner-signal,
+:root[data-coldem-clarity="on"] .app-shell .coldem-status-strip,
+:root[data-coldem-clarity="on"] .app-shell .coldem-status-strip b,
+:root[data-coldem-clarity="on"] .app-shell .featured-hero__intel span,
+:root[data-coldem-clarity="on"] .app-shell .featured-hero__serial,
+:root[data-coldem-clarity="on"] .app-shell .featured-hero__tape,
+:root[data-coldem-clarity="on"] .app-shell .game-card__live,
+:root[data-coldem-clarity="on"] .app-shell .settings-dialog p,
+:root[data-coldem-clarity="on"] .app-shell .settings-dialog small,
+:root[data-coldem-clarity="on"] .app-shell .settings-dialog footer {
+  color: #f1f4ff !important;
+  font-size: 13px !important;
+  font-weight: 700;
+  letter-spacing: .025em;
+  line-height: 1.35;
+}
