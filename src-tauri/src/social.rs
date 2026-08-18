@@ -371,7 +371,7 @@ impl SocialService {
             .lock()
             .ok()
             .and_then(|value| value.clone());
-        let Some(session) = session.filter(|session| session.joinable) else {
+        let Some(session) = session else {
             self.clear_activity();
             return;
         };
@@ -381,6 +381,7 @@ impl SocialService {
             join_secret: session.join_secret,
             party_size: session.party_size,
             party_capacity: session.party_capacity,
+            joinable: session.joinable,
         });
     }
 
@@ -731,12 +732,17 @@ fn random_token() -> Result<String, String> {
 }
 
 fn validate_session(session: &SocialSession) -> Result<(), String> {
-    if session.game_slug != "robot-rock-reborn" || session.game_title.trim().is_empty() || session.lobby_id.trim().is_empty() {
-        return Err("The social session requires a game title and EOS lobby ID.".into());
+    if session.game_slug != "robot-rock-reborn" || session.game_title.trim().is_empty() {
+        return Err("The social session requires a supported game title.".into());
     }
-    parse_join_payload(&session.join_secret)?;
-    if session.party_capacity == 0 || session.party_size > session.party_capacity {
-        return Err("The social party size is invalid.".into());
+    if session.joinable {
+        if session.lobby_id.trim().is_empty() {
+            return Err("A joinable social session requires an EOS lobby ID.".into());
+        }
+        parse_join_payload(&session.join_secret)?;
+        if session.party_capacity == 0 || session.party_size > session.party_capacity {
+            return Err("The social party size is invalid.".into());
+        }
     }
     Ok(())
 }

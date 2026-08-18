@@ -71,16 +71,16 @@ export function SocialPanel({ social, nowPlaying, sessionSeconds }: SocialPanelP
   const snapshot = social.snapshot;
   const connected = snapshot?.connection === "connected";
   const canInvite = Boolean(snapshot?.activeSession?.joinable);
-  const visibleFriends = snapshot?.friends.slice(0, 6) ?? [];
+  const friends = snapshot?.friends ?? [];
   const grouped = (["playing", "online", "offline"] as const)
-    .map((group) => ({ group, friends: visibleFriends.filter((friend) => friend.group === group) }))
+    .map((group) => ({ group, friends: friends.filter((friend) => friend.group === group) }))
     .filter(({ friends }) => friends.length > 0);
 
   return (
     <section className="social-panel" aria-label="Discord friends">
       <div className="social-panel__heading">
         <div><MessageCircle size={16} /><h2>Discord</h2></div>
-        {connected && <span>{snapshot.friends.filter((friend) => friend.group !== "offline").length}</span>}
+        {connected && <span title={`${friends.filter((friend) => friend.group !== "offline").length} online`}>{friends.length}</span>}
       </div>
 
       {nowPlaying && (
@@ -98,10 +98,16 @@ export function SocialPanel({ social, nowPlaying, sessionSeconds }: SocialPanelP
           <div className={`social-session ${canInvite ? "social-session--live" : ""}`}>
             <Gamepad2 size={15} />
             <div>
-              <strong>{canInvite ? snapshot.activeSession?.gameTitle : "No online lobby"}</strong>
+              <strong>{canInvite
+                ? snapshot.activeSession?.gameTitle
+                : snapshot.activeSession
+                  ? `${snapshot.activeSession.gameTitle} open`
+                  : "No online lobby"}</strong>
               <small>{canInvite
                 ? `${snapshot.activeSession?.partySize}/${snapshot.activeSession?.partyCapacity} · EOS lobby ready`
-                : "Start an online lobby to invite friends"}</small>
+                : snapshot.activeSession
+                  ? "Playing now · Discord activity is live"
+                  : "Start an online lobby to invite friends"}</small>
             </div>
           </div>
 
@@ -112,22 +118,26 @@ export function SocialPanel({ social, nowPlaying, sessionSeconds }: SocialPanelP
 
           {grouped.length === 0 ? (
             <div className="social-panel__empty"><UsersRound size={20} /> No friends to show yet.</div>
-          ) : grouped.map(({ group, friends }) => (
-            <div className="social-group" key={group}>
-              <p>{groupLabels[group]} <span>{friends.length}</span></p>
-              <ul>
-                {friends.map((friend) => (
-                  <FriendRow
-                    key={friend.id}
-                    friend={friend}
-                    canInvite={canInvite && friend.group !== "offline"}
-                    pending={social.pendingFriendId === friend.id}
-                    onInvite={() => void social.invite(friend.id, friend.displayName)}
-                  />
-                ))}
-              </ul>
+          ) : (
+            <div className="social-friends-list" aria-label="All Discord friends">
+              {grouped.map(({ group, friends: groupFriends }) => (
+                <div className="social-group" key={group}>
+                  <p>{groupLabels[group]} <span>{groupFriends.length}</span></p>
+                  <ul>
+                    {groupFriends.map((friend) => (
+                      <FriendRow
+                        key={friend.id}
+                        friend={friend}
+                        canInvite={canInvite && friend.group !== "offline"}
+                        pending={social.pendingFriendId === friend.id}
+                        onInvite={() => void social.invite(friend.id, friend.displayName)}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
 
           <button type="button" className="social-disconnect" onClick={() => void social.disconnect()}>
             <LogOut size={12} /> Disconnect &amp; forget Discord
