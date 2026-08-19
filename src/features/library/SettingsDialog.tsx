@@ -1,4 +1,4 @@
-import { Eye, GitBranch, Palette, X } from "lucide-react";
+import { GitBranch, Palette, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import type { ReleaseChannel } from "../../types/launcher";
 
@@ -27,7 +27,6 @@ const applySetting = (key: string, value: boolean) => {
 };
 
 export const applySavedVisualPreferences = () => {
-  applySetting("coldem-clarity", readSetting("coldem-clarity", false));
   applySetting("coldem-effects", readSetting("coldem-effects", true));
 };
 
@@ -80,12 +79,10 @@ function ChannelRow({
 }
 
 export function SettingsDialog({ onClose, channel, onChannelChange }: SettingsDialogProps) {
-  const [clarity, setClarity] = useState(() => readSetting("coldem-clarity", false));
   const [effects, setEffects] = useState(() => readSetting("coldem-effects", true));
   const [channelBusy, setChannelBusy] = useState(false);
   const [channelError, setChannelError] = useState<string | null>(null);
 
-  useEffect(() => applySetting("coldem-clarity", clarity), [clarity]);
   useEffect(() => applySetting("coldem-effects", effects), [effects]);
 
   const changeChannel = async (nextChannel: ReleaseChannel) => {
@@ -111,7 +108,6 @@ export function SettingsDialog({ onClose, channel, onChannelChange }: SettingsDi
         <p className="settings-dialog__intro">Choose which Coldem release stream to browse. The selection stays on this computer.</p>
         <div className="settings-dialog__list">
           <ChannelRow channel={channel} busy={channelBusy} onChange={(nextChannel) => void changeChannel(nextChannel)} />
-          <ToggleRow icon={<Eye size={17} />} title="High-clarity type" detail="Boost small labels and supporting text." checked={clarity} onChange={() => setClarity((value) => !value)} />
           <ToggleRow icon={<Palette size={17} />} title="Street effects" detail="Keep the graffiti, glow, grain, and motion alive." checked={effects} onChange={() => setEffects((value) => !value)} />
           {channelError && <p className="settings-dialog__error" role="alert">{channelError}</p>}
         </div>

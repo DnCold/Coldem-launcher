@@ -1490,12 +1490,6 @@ h1, h2, h3, p { margin: 0; }
 .settings-dialog footer span { display: inline-flex; align-items: center; gap: 5px; }
 .settings-dialog footer span i { width: 5px; height: 5px; border-radius: 50%; background: var(--acid); }
 .settings-dialog footer b { color: #d9c5e9; font-size: 7px; }
-:root[data-coldem-clarity="on"] .app-shell small,
-:root[data-coldem-clarity="on"] .app-shell .eyebrow,
-:root[data-coldem-clarity="on"] .app-shell .downloads-panel__stamp,
-:root[data-coldem-clarity="on"] .app-shell .downloads-panel__telemetry,
-:root[data-coldem-clarity="on"] .app-shell .game-card__archive,
-:root[data-coldem-clarity="on"] .app-shell .coldem-status-strip { font-size: 10px !important; }
 :root[data-coldem-effects="off"] .grunge-overlay,
 :root[data-coldem-effects="off"] .street-fx,
 :root[data-coldem-effects="off"] .rail-sticker-strip,
@@ -2038,6 +2032,10 @@ h1, h2, h3, p { margin: 0; }
 .social-session strong { font-size: 13px; line-height: 1.2; }
 .social-session small { font-size: 12px; line-height: 1.35; white-space: normal; }
 .social-group { margin-top: 14px; }
+.social-friends-list { min-height: 0; max-height: min(45vh, 440px); margin: 0 -5px; padding: 0 5px 4px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(145,121,196,.7) transparent; }
+.social-friends-list::-webkit-scrollbar { width: 7px; }
+.social-friends-list::-webkit-scrollbar-thumb { border-radius: 8px; background: rgba(145,121,196,.7); }
+.social-friends-list::-webkit-scrollbar-track { background: transparent; }
 .social-group > p { font-size: 10px; line-height: 1.25; letter-spacing: .11em; }
 .social-group ul { gap: 5px; margin-top: 7px; }
 .social-friend { gap: 9px; min-height: 46px; padding: 6px 4px; }
@@ -2067,32 +2065,6 @@ h1, h2, h3, p { margin: 0; }
 .downloads-panel__telemetry b { font-size: 10px; }
 .rail-radio strong { font-size: 12px; line-height: 1.25; }
 .rail-radio small { font-size: 11px; line-height: 1.35; }
-
-/* The clarity setting deliberately changes size as well as contrast. */
-:root[data-coldem-clarity="on"] .activity-rail {
-  color: #f3f5ff;
-}
-:root[data-coldem-clarity="on"] .activity-rail small,
-:root[data-coldem-clarity="on"] .activity-rail .social-panel__empty,
-:root[data-coldem-clarity="on"] .activity-rail .social-connect p,
-:root[data-coldem-clarity="on"] .activity-rail .social-feedback,
-:root[data-coldem-clarity="on"] .activity-rail .social-disconnect,
-:root[data-coldem-clarity="on"] .activity-rail .downloads-panel__stamp,
-:root[data-coldem-clarity="on"] .activity-rail .downloads-panel__telemetry,
-:root[data-coldem-clarity="on"] .activity-rail .rail-radio small {
-  color: #e1e6f4 !important;
-  font-size: 13px !important;
-  font-weight: 650;
-  letter-spacing: .02em;
-}
-:root[data-coldem-clarity="on"] .activity-rail .crew-dossier > p,
-:root[data-coldem-clarity="on"] .activity-rail .social-group > p,
-:root[data-coldem-clarity="on"] .activity-rail .social-panel::before,
-:root[data-coldem-clarity="on"] .activity-rail .downloads-panel::before {
-  color: #fff8ff;
-  font-size: 10px;
-  font-weight: 900;
-}
 
 /* Keep operational information readable everywhere; only purely decorative marks stay micro-sized. */
 .window-bar__label { font-size: 11px; }
@@ -2129,29 +2101,3 @@ h1, h2, h3, p { margin: 0; }
 .settings-dialog__error,
 .settings-dialog footer,
 .settings-dialog footer b { font-size: 11px; line-height: 1.35; }
-
-:root[data-coldem-clarity="on"] .app-shell .eyebrow,
-:root[data-coldem-clarity="on"] .app-shell .feature-tag,
-:root[data-coldem-clarity="on"] .app-shell .game-card__genre,
-:root[data-coldem-clarity="on"] .app-shell .game-card__title-row p,
-:root[data-coldem-clarity="on"] .app-shell .game-card__archive,
-:root[data-coldem-clarity="on"] .app-shell .sidebar__nav > p,
-:root[data-coldem-clarity="on"] .app-shell .sidebar-signal,
-:root[data-coldem-clarity="on"] .app-shell .sidebar-signal b,
-:root[data-coldem-clarity="on"] .app-shell .runner-ident small,
-:root[data-coldem-clarity="on"] .app-shell .topbar__runner-signal,
-:root[data-coldem-clarity="on"] .app-shell .coldem-status-strip,
-:root[data-coldem-clarity="on"] .app-shell .coldem-status-strip b,
-:root[data-coldem-clarity="on"] .app-shell .featured-hero__intel span,
-:root[data-coldem-clarity="on"] .app-shell .featured-hero__serial,
-:root[data-coldem-clarity="on"] .app-shell .featured-hero__tape,
-:root[data-coldem-clarity="on"] .app-shell .game-card__live,
-:root[data-coldem-clarity="on"] .app-shell .settings-dialog p,
-:root[data-coldem-clarity="on"] .app-shell .settings-dialog small,
-:root[data-coldem-clarity="on"] .app-shell .settings-dialog footer {
-  color: #f1f4ff !important;
-  font-size: 13px !important;
-  font-weight: 700;
-  letter-spacing: .025em;
-  line-height: 1.35;
-}

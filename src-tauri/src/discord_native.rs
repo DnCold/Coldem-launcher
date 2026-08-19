@@ -19,6 +19,7 @@ pub(crate) enum NativeCommand {
         join_secret: String,
         party_size: u32,
         party_capacity: u32,
+        joinable: bool,
     },
     ClearActivity,
 }
@@ -30,6 +31,7 @@ struct NativeActivity {
     join_secret: String,
     party_size: u32,
     party_capacity: u32,
+    joinable: bool,
 }
 
 pub(crate) struct NativeRuntime {
@@ -247,6 +249,7 @@ unsafe fn handle_command(
             join_secret,
             party_size,
             party_capacity,
+            joinable,
         } => {
             let activity = NativeActivity {
                 game_title,
@@ -254,6 +257,7 @@ unsafe fn handle_command(
                 join_secret,
                 party_size,
                 party_capacity,
+                joinable,
             };
             if Discord_Client_GetStatus(client) == DiscordClientStatus::Ready as i32 {
                 publish_activity(state, activity, state_ptr);
@@ -277,15 +281,24 @@ unsafe fn publish_activity(
         set_message(state_ptr, "Could not publish Discord presence for this game title.");
         return;
     };
-    let Ok(activity_state) = CString::new(format!(
-        "{} · Hosting EOS lobby {}/{}",
-        activity.game_title,
-        activity.party_size, activity.party_capacity
-    )) else {
+    let activity_state_text = if activity.joinable {
+        format!(
+            "{} · Hosting EOS lobby {}/{}",
+            activity.game_title, activity.party_size, activity.party_capacity
+        )
+    } else {
+        format!("Playing {}", activity.game_title)
+    };
+    let Ok(activity_state) = CString::new(activity_state_text) else {
         set_message(state_ptr, "Could not publish Discord lobby state.");
         return;
     };
-    let details = CString::new("Discord invites open").expect("static activity details");
+    let details = CString::new(if activity.joinable {
+        "Discord invites open"
+    } else {
+        "Playing through Coldem"
+    })
+    .expect("static activity details");
     let Ok(lobby_id) = CString::new(activity.lobby_id.as_str()) else {
         set_message(state_ptr, "Could not publish Discord presence for this EOS lobby.");
         return;
@@ -313,13 +326,21 @@ unsafe fn publish_activity(
     Discord_Activity_SetState(&mut rich_presence, &mut activity_state);
     let mut details = sdk_string(details.as_bytes());
     Discord_Activity_SetDetails(&mut rich_presence, &mut details);
-    Discord_ActivityParty_SetId(&mut party, sdk_string(lobby_id.as_bytes()));
-    Discord_ActivityParty_SetCurrentSize(&mut party, activity.party_size.min(i32::MAX as u32) as i32);
-    Discord_ActivityParty_SetMaxSize(&mut party, activity.party_capacity.min(i32::MAX as u32) as i32);
-    Discord_ActivityParty_SetPrivacy(&mut party, 1);
-    Discord_Activity_SetParty(&mut rich_presence, &mut party);
-    Discord_ActivitySecrets_SetJoin(&mut secrets, sdk_string(join_secret.as_bytes()));
-    Discord_Activity_SetSecrets(&mut rich_presence, &mut secrets);
+    if activity.joinable && !activity.lobby_id.is_empty() && !activity.join_secret.is_empty() {
+        Discord_ActivityParty_SetId(&mut party, sdk_string(lobby_id.as_bytes()));
+        Discord_ActivityParty_SetCurrentSize(
+            &mut party,
+            activity.party_size.min(i32::MAX as u32) as i32,
+        );
+        Discord_ActivityParty_SetMaxSize(
+            &mut party,
+            activity.party_capacity.min(i32::MAX as u32) as i32,
+        );
+        Discord_ActivityParty_SetPrivacy(&mut party, 1);
+        Discord_Activity_SetParty(&mut rich_presence, &mut party);
+        Discord_ActivitySecrets_SetJoin(&mut secrets, sdk_string(join_secret.as_bytes()));
+        Discord_Activity_SetSecrets(&mut rich_presence, &mut secrets);
+    }
     Discord_Activity_SetSupportedPlatforms(&mut rich_presence, 1);
     Discord_Client_UpdateRichPresence(
         &mut *(state.client as *mut DiscordClient),
