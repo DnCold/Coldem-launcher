@@ -4,7 +4,7 @@ use std::{
     io::Read,
     path::{Component, Path, PathBuf},
     process::{Child, Command},
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use futures_util::StreamExt;
@@ -26,6 +26,8 @@ const PLATFORM: &str = "windows-x86_64";
 const PROFILE_ID: u64 = 1;
 const DEFAULT_GITHUB_REPOSITORY: &str = "DnCold/Coldem-delivery";
 const DEFAULT_CATALOG_PUBKEY: &str = "RWQvH5Mf5IVDcKzMNgcT3TKJMI0U39FxX0lyOZs4ONyCkWXZVih1IQoj";
+const CATALOG_FETCH_ATTEMPTS: usize = 4;
+const CATALOG_RETRY_DELAYS_MS: [u64; CATALOG_FETCH_ATTEMPTS - 1] = [250, 750, 1_500];
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -817,48 +819,74 @@ impl DeliveryService {
         url: &str,
     ) -> Result<(Vec<u8>, Option<String>, Option<String>), String> {
         validate_download_url(url)?;
-        let response = self
-            .client
-            .get(url)
-            .send()
-            .await
-            .map_err(|error| error.to_string())?;
-        if !response.status().is_success() {
-            return Err(format!("catalog returned HTTP {}", response.status()));
-        }
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|error| error.to_string())?
-            .to_vec();
-        if let Some(public_key_text) = catalog_public_key() {
-            let signature_response = self
-                .client
-                .get(format!("{url}.minisig"))
-                .send()
-                .await
-                .map_err(|error| format!("could not download catalog signature: {error}"))?;
-            if !signature_response.status().is_success() {
-                return Err(format!(
-                    "catalog signature returned HTTP {}",
-                    signature_response.status()
-                ));
-            }
-            let signature_text = signature_response
-                .text()
-                .await
-                .map_err(|error| error.to_string())?;
-            verify_catalog_signature(&bytes, &signature_text, &public_key_text)?;
-            Ok((bytes, Some(signature_text), None))
-        } else {
-            Ok((
-                bytes,
-                None,
-                Some("This development build verifies every downloaded file with SHA-256, but its catalog signing key has not been configured yet.".into()),
-            ))
-        }
-    }
+        let public_key_text = catalog_public_key();
+        let cache_bust = catalog_cache_bust();
+        let mut last_error = String::from("catalog request failed");
 
+        for attempt in 0..CATALOG_FETCH_ATTEMPTS {
+            if attempt > 0 {
+                tokio::time::sleep(Duration::from_millis(CATALOG_RETRY_DELAYS_MS[attempt - 1])).await;
+            }
+
+            let result = async {
+                // GitHub's release/latest CDN can briefly serve the manifest and its
+                // detached signature from different release generations. Give each
+                // pair a fresh cache key so both files converge on the same publish.
+                let manifest_url = catalog_request_url(url, None, &cache_bust, attempt)?;
+                let response = self
+                    .client
+                    .get(manifest_url)
+                    .send()
+                    .await
+                    .map_err(|error| error.to_string())?;
+                if !response.status().is_success() {
+                    return Err(format!("catalog returned HTTP {}", response.status()));
+                }
+                let bytes = response
+                    .bytes()
+                    .await
+                    .map_err(|error| error.to_string())?
+                    .to_vec();
+
+                if let Some(public_key_text) = public_key_text.as_deref() {
+                    let signature_url =
+                        catalog_request_url(url, Some(".minisig"), &cache_bust, attempt)?;
+                    let signature_response = self
+                        .client
+                        .get(signature_url)
+                        .send()
+                        .await
+                        .map_err(|error| format!("could not download catalog signature: {error}"))?;
+                    if !signature_response.status().is_success() {
+                        return Err(format!(
+                            "catalog signature returned HTTP {}",
+                            signature_response.status()
+                        ));
+                    }
+                    let signature_text = signature_response
+                        .text()
+                        .await
+                        .map_err(|error| error.to_string())?;
+                    verify_catalog_signature(&bytes, &signature_text, public_key_text)?;
+                    Ok((bytes, Some(signature_text), None))
+                } else {
+                    Ok((
+                        bytes,
+                        None,
+                        Some("This development build verifies every downloaded file with SHA-256, but its catalog signing key has not been configured yet.".into()),
+                    ))
+                }
+            }
+            .await;
+
+            match result {
+                Ok(catalog) => return Ok(catalog),
+                Err(error) => last_error = error,
+            }
+        }
+
+        Err(last_error)
+    }
     fn finish_operation(
         &self,
         app: &AppHandle,
@@ -968,6 +996,32 @@ fn stable_manifest_url() -> Option<String> {
         })
 }
 
+fn catalog_cache_bust() -> String {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
+        .to_string()
+}
+
+fn catalog_request_url(
+    base_url: &str,
+    suffix: Option<&str>,
+    cache_bust: &str,
+    attempt: usize,
+) -> Result<String, String> {
+    let mut url = Url::parse(base_url).map_err(|error| format!("Invalid catalog URL: {error}"))?;
+    if let Some(suffix) = suffix {
+        let mut path = url.path().to_owned();
+        path.push_str(suffix);
+        url.set_path(&path);
+    }
+    url.query_pairs_mut().append_pair(
+        "coldem_catalog_retry",
+        &format!("{cache_bust}-{attempt}"),
+    );
+    Ok(url.to_string())
+}
 fn empty_catalog() -> CatalogManifest {
     CatalogManifest {
         schema_version: 1,
